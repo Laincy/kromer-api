@@ -252,6 +252,8 @@ impl PaginatedEndpoint for RecentAddrTransactionsEp {
 }
 
 /// An endpioint for fetching all the [`Names`](crate::model::krist::Name) owned by a specific [`address`](WalletAddr)
+///
+/// See: <https://krist.dev/docs/#api-AddressGroup-GetAddressNames>
 #[derive(Debug, Serialize, Clone, Copy)]
 #[serde(rename_all = "camelCase")]
 pub struct ListAddrNamesEp {

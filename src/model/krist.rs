@@ -159,12 +159,11 @@ pub struct Name {
     pub registered: DateTime<Utc>,
     /// The date and time this name was last updated - eitheir the data changed, or it was transferred to a
     /// new owner
-    pub updated: DateTime<Utc>,
+    pub updated: Option<DateTime<Utc>>,
     /// The date and time this name was last transferred to a new owner.
-    pub transferred: DateTime<Utc>,
-    /// The name's data
-    pub a: String,
-    // Omit unpaid as it is unused
+    pub transferred: Option<DateTime<Utc>>,
+    /// The amount unpaid on the purchase of this name
+    pub unpaid: Decimal,
 }
 
 /// A page of [`names`](Name) fetched from a paginated API
@@ -268,6 +267,60 @@ impl ExtractJson for GetV2AddrRes {
     fn extract(self) -> Result<Self::Res, KromerError> {
         match self {
             Self::Address { address } => Ok(address),
+            Self::KristError { error, message } => Err(KromerError::Krist { error, message }),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(untagged)]
+pub(crate) enum GetNameRes {
+    Name { name: Name },
+    KristError { error: String, message: String },
+}
+
+impl ExtractJson for GetNameRes {
+    type Res = Name;
+
+    fn extract(self) -> Result<Self::Res, KromerError> {
+        match self {
+            Self::Name { name } => Ok(name),
+            Self::KristError { error, message } => Err(KromerError::Krist { error, message }),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(untagged)]
+pub(crate) enum GetCostRes {
+    Cost { name_cost: Decimal },
+    KristError { error: String, message: String },
+}
+
+impl ExtractJson for GetCostRes {
+    type Res = Decimal;
+
+    fn extract(self) -> Result<Self::Res, KromerError> {
+        match self {
+            Self::Cost { name_cost } => Ok(name_cost),
+            Self::KristError { error, message } => Err(KromerError::Krist { error, message }),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(untagged)]
+pub(crate) enum GetNameAvailRes {
+    Avail { available: bool },
+    KristError { error: String, message: String },
+}
+
+impl ExtractJson for GetNameAvailRes {
+    type Res = bool;
+
+    fn extract(self) -> Result<Self::Res, KromerError> {
+        match self {
+            Self::Avail { available } => Ok(available),
             Self::KristError { error, message } => Err(KromerError::Krist { error, message }),
         }
     }

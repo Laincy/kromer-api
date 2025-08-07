@@ -12,6 +12,8 @@ use serde::Serialize;
 /// An endpoint for authenticating a [`WalletAddr`] using a [`WalletPrivateKey`]
 ///
 /// Returns an [`Option`] with `Some` if the wallet existed, and `None` if it did not.
+///
+/// See: <https://krist.dev/docs/#api-MiscellaneousGroup-Login>
 #[derive(Debug, Serialize, Clone, Copy)]
 pub struct AuthAddrEp {
     #[serde(rename = "privatekey")]
@@ -39,6 +41,8 @@ impl Endpoint for AuthAddrEp {
 }
 
 /// An endpoint for getting the [`Motd`]
+///
+/// See: <https://krist.dev/docs/#api-MiscellaneousGroup-GetMOTD>
 #[derive(Debug, Default, Clone, Copy)]
 pub struct GetMotdEp;
 
@@ -71,6 +75,8 @@ impl Endpoint for GetMotdEp {
 }
 
 /// An endpoint for getting the amount of money in circulation
+///
+/// See: <https://krist.dev/docs/#api-MiscellaneousGroup-GetMoneySupply>
 #[derive(Debug, Default, Clone, Copy)]
 pub struct GetMoneySupplyEp;
 
@@ -95,6 +101,8 @@ impl Endpoint for GetMoneySupplyEp {
 }
 
 /// An endpoint for turning a [`WalletPrivateKey`] into a [`WalletAddr`]
+///
+/// See: <https://krist.dev/docs/#api-MiscellaneousGroup-MakeV2Address>
 #[derive(Debug, Serialize, Clone, Copy)]
 pub struct GetV2FromPkEp {
     #[serde(rename = "privatekey")]
