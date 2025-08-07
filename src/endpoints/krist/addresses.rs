@@ -8,12 +8,11 @@ use crate::{
         ExtractJson, GetAddrRes, NamePage, PageRes, TransactionPage, Wallet, WalletAddr, WalletPage,
     },
 };
-use async_trait::async_trait;
 use serde::Serialize;
 
 /// An endpoint for fetching a [`Wallet`] by [`WalletAddr`]
 ///
-/// See: <https://krist.dev/docs/#api-AddressGroup-GetAddress>
+/// See: <https://krist.dev/docs/pi-AddressGroup-GetAddress>
 #[derive(Debug, Serialize)]
 pub struct GetAddrEp {
     #[serde(skip_serializing)]
@@ -40,7 +39,6 @@ impl GetAddrEp {
     }
 }
 
-#[async_trait]
 impl Endpoint for GetAddrEp {
     type Value = Wallet;
 
@@ -53,7 +51,7 @@ impl Endpoint for GetAddrEp {
 
 /// An endpoint for listing [`Wallets`](Wallet) as a [`WalletPage`]
 ///
-/// See: <https://krist.dev/docs/#api-AddressGroup-GetAddreses>
+/// See: <https://krist.dev/docs/pi-AddressGroup-GetAddreses>
 #[derive(Debug, Serialize, Clone, Copy)]
 pub struct ListAddrsEp {
     offset: usize,
@@ -92,7 +90,6 @@ impl Paginated for ListAddrsEp {
     }
 }
 
-#[async_trait]
 impl Endpoint for ListAddrsEp {
     type Value = WalletPage;
 
@@ -104,7 +101,6 @@ impl Endpoint for ListAddrsEp {
     }
 }
 
-#[async_trait]
 impl PaginatedEndpoint for ListAddrsEp {
     async fn query_page(&mut self, client: &KromerClient) -> Result<Self::Value, KromerError> {
         let res = self.query(client).await?;
@@ -117,7 +113,7 @@ impl PaginatedEndpoint for ListAddrsEp {
 
 /// An endpoint for fetching the richest [`Wallets`](Wallet) as a [`WalletPage`]
 ///
-/// See: <https://krist.dev/docs/#api-AddressGroup-GetAddreses>
+/// See: <https://krist.dev/docs/pi-AddressGroup-GetAddreses>
 #[derive(Debug, Serialize)]
 pub struct RichAddrsEp {
     offset: usize,
@@ -156,7 +152,6 @@ impl Paginated for RichAddrsEp {
     }
 }
 
-#[async_trait]
 impl Endpoint for RichAddrsEp {
     type Value = WalletPage;
 
@@ -168,7 +163,6 @@ impl Endpoint for RichAddrsEp {
     }
 }
 
-#[async_trait]
 impl PaginatedEndpoint for RichAddrsEp {
     async fn query_page(&mut self, client: &KromerClient) -> Result<Self::Value, KromerError> {
         let res = self.query(client).await?;
@@ -181,7 +175,7 @@ impl PaginatedEndpoint for RichAddrsEp {
 
 /// An endpoint for fetching recent [`Transactions`](crate::model::krist::Transaction) of a given [`address`](WalletAddr)
 ///
-/// See: <https://krist.dev/docs/#api-AddressGroup-GetAddressTransactions>
+/// See: <https://krist.dev/docs/pi-AddressGroup-GetAddressTransactions>
 #[derive(Debug, Serialize, Clone, Copy)]
 #[serde(rename_all = "camelCase")]
 pub struct RecentAddrTransactionsEp {
@@ -226,7 +220,6 @@ impl Paginated for RecentAddrTransactionsEp {
     }
 }
 
-#[async_trait]
 impl Endpoint for RecentAddrTransactionsEp {
     type Value = TransactionPage;
 
@@ -240,7 +233,6 @@ impl Endpoint for RecentAddrTransactionsEp {
     }
 }
 
-#[async_trait]
 impl PaginatedEndpoint for RecentAddrTransactionsEp {
     async fn query_page(&mut self, client: &KromerClient) -> Result<Self::Value, KromerError> {
         let res = self.query(client).await?;
@@ -253,7 +245,7 @@ impl PaginatedEndpoint for RecentAddrTransactionsEp {
 
 /// An endpioint for fetching all the [`Names`](crate::model::krist::Name) owned by a specific [`address`](WalletAddr)
 ///
-/// See: <https://krist.dev/docs/#api-AddressGroup-GetAddressNames>
+/// See: <https://krist.dev/docs/pi-AddressGroup-GetAddressNames>
 #[derive(Debug, Serialize, Clone, Copy)]
 #[serde(rename_all = "camelCase")]
 pub struct ListAddrNamesEp {
@@ -287,7 +279,6 @@ impl Paginated for ListAddrNamesEp {
     }
 }
 
-#[async_trait]
 impl Endpoint for ListAddrNamesEp {
     type Value = NamePage;
 

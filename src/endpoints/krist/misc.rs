@@ -5,7 +5,6 @@ use crate::{
         AuthAddrRes, ExtractJson, GetV2AddrRes, MoneySupplyRes, Motd, WalletAddr, WalletPrivateKey,
     },
 };
-use async_trait::async_trait;
 use rust_decimal::Decimal;
 use serde::Serialize;
 
@@ -28,7 +27,6 @@ impl AuthAddrEp {
     }
 }
 
-#[async_trait]
 impl Endpoint for AuthAddrEp {
     type Value = Option<WalletAddr>;
 
@@ -54,7 +52,6 @@ impl GetMotdEp {
     }
 }
 
-#[async_trait]
 impl Endpoint for GetMotdEp {
     type Value = Motd;
 
@@ -88,7 +85,6 @@ impl GetMoneySupplyEp {
     }
 }
 
-#[async_trait]
 impl Endpoint for GetMoneySupplyEp {
     type Value = Decimal;
 
@@ -117,7 +113,6 @@ impl GetV2FromPkEp {
     }
 }
 
-#[async_trait]
 impl Endpoint for GetV2FromPkEp {
     type Value = WalletAddr;
 

@@ -3,7 +3,6 @@ use crate::{
     endpoints::{Endpoint, Paginated, PaginatedEndpoint},
     model::krist::{ExtractJson, GetCostRes, GetNameAvailRes, GetNameRes, Name, NamePage, PageRes},
 };
-use async_trait::async_trait;
 use rust_decimal::Decimal;
 use serde::Serialize;
 
@@ -25,7 +24,6 @@ impl GetNameEp {
     }
 }
 
-#[async_trait]
 impl Endpoint for GetNameEp {
     type Value = Name;
 
@@ -77,7 +75,6 @@ impl Paginated for ListNamesEp {
     }
 }
 
-#[async_trait]
 impl Endpoint for ListNamesEp {
     type Value = NamePage;
 
@@ -89,7 +86,6 @@ impl Endpoint for ListNamesEp {
     }
 }
 
-#[async_trait]
 impl PaginatedEndpoint for ListNamesEp {
     async fn query_page(&mut self, client: &KromerClient) -> Result<Self::Value, KromerError> {
         let res = self.query(client).await?;
@@ -141,7 +137,6 @@ impl Paginated for ListNewNamesEp {
     }
 }
 
-#[async_trait]
 impl Endpoint for ListNewNamesEp {
     type Value = NamePage;
 
@@ -153,7 +148,6 @@ impl Endpoint for ListNewNamesEp {
     }
 }
 
-#[async_trait]
 impl PaginatedEndpoint for ListNewNamesEp {
     async fn query_page(&mut self, client: &KromerClient) -> Result<Self::Value, KromerError> {
         let res = self.query(client).await?;
@@ -178,7 +172,6 @@ impl GetNameCostEp {
     }
 }
 
-#[async_trait]
 impl Endpoint for GetNameCostEp {
     type Value = Decimal;
 
@@ -205,7 +198,6 @@ impl CheckNameAvailEp {
     }
 }
 
-#[async_trait]
 impl Endpoint for CheckNameAvailEp {
     type Value = bool;
     async fn query(&self, client: &KromerClient) -> Result<Self::Value, KromerError> {
