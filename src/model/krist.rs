@@ -1,13 +1,16 @@
 //! Type models for the Krist compatability layer of the Kromer2 API
 
+pub use wallet_addr::{WalletAddr, WalletAddrParseError};
+pub use wallet_pk::{WalletPkParseError, WalletPrivateKey};
+
+mod wallet_addr;
+mod wallet_pk;
+
 use crate::KromerError;
 use chrono::DateTime;
 use chrono::Utc;
 use rust_decimal::Decimal;
-use serde::{
-    Deserialize, Serialize,
-    de::{Deserializer, Error as DeError, Visitor},
-};
+use serde::{Deserialize, Serialize};
 
 /// Shared behavior for internal krist types
 pub(crate) trait ExtractJson {
@@ -16,124 +19,6 @@ pub(crate) trait ExtractJson {
 
     /// Extracts a value from its deserialized JSON wrapper
     fn extract(self) -> Result<Self::Res, KromerError>;
-}
-
-/// A wallet address, stored as a null terminated array of up to 10 bytes
-#[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
-pub struct WalletAddr([u8; 10]);
-
-impl WalletAddr {
-    /// Serverwelf address
-    pub const SERVERWELF: Self = Self(*b"serverwelf");
-
-    /// Parses a slice of bytes into a `WalletId`.
-    /// # Errors
-    /// Will error if the ID is too long or contains non alphanumeric values
-    pub const fn parse(value: &[u8]) -> Result<Self, WalletAddrParseError> {
-        let len = value.len();
-
-        if len > 10 {
-            return Err(WalletAddrParseError::MaxLen(len));
-        }
-
-        let mut bytes = [0u8; 10];
-
-        let mut i = 0;
-
-        while i < len {
-            let b = value[i];
-
-            match value[i] {
-                b'0'..=b'9' | b'A'..=b'Z' | b'a'..=b'z' | b'-' | b'_' => bytes[i] = b,
-                _ => return Err(WalletAddrParseError::InvalidByte(b)),
-            }
-
-            i += 1;
-        }
-
-        Ok(Self(bytes))
-    }
-
-    #[must_use]
-    /// Returns only the utilized bytes
-    pub fn inner(&self) -> &[u8] {
-        let mut len: usize = 0;
-
-        while len < 10 {
-            if self.0[len] == 0 {
-                break;
-            }
-            len += 1;
-        }
-
-        &self.0[0..len]
-    }
-}
-impl TryFrom<&str> for WalletAddr {
-    type Error = WalletAddrParseError;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Self::parse(value.as_bytes())
-    }
-}
-
-impl std::fmt::Display for WalletAddr {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(
-            std::str::from_utf8(self.inner())
-                .expect("Should never be wrong unless WalletAddr invariance is violated"),
-        )
-    }
-}
-
-impl<'de> Deserialize<'de> for WalletAddr {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        struct WalletAddrVisitor;
-
-        impl Visitor<'_> for WalletAddrVisitor {
-            type Value = WalletAddr;
-
-            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                f.write_str("wallet address")
-            }
-
-            fn visit_str<E: DeError>(self, v: &str) -> Result<Self::Value, E> {
-                WalletAddr::parse(v.as_bytes()).map_err(DeError::custom)
-            }
-        }
-
-        deserializer.deserialize_any(WalletAddrVisitor)
-    }
-}
-
-impl Serialize for WalletAddr {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.collect_str(self)
-    }
-}
-
-#[derive(Debug, thiserror::Error)]
-/// Errors emmitted when creating a [`WalletAddr`]
-pub enum WalletAddrParseError {
-    /// Occurs when the passed value's length is longer than 10
-    #[error("id exceeds maximum length. Must be less than 10, got {0}")]
-    MaxLen(usize),
-    /// Occurs when a non alphanumeric character is passed to the parse function
-    #[error("input myst be alphanumeric, '-', or '_'. Got {0}")]
-    InvalidByte(u8),
-}
-
-#[cfg(test)]
-mod tests {
-    use super::WalletId;
-
-    #[test]
-    fn parse() {
-        assert_eq!(WalletId::parse(b"serverwel").unwrap().inner(), b"serverwel");
-    }
 }
 
 /// A wallet fetched from the Kromer2 API
@@ -158,7 +43,6 @@ pub struct Wallet {
     pub names: Option<u32>,
 }
 
-/// Internal deserialization type for the `/addresses/<addr>` endpoint
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(untagged)]
 pub(crate) enum GetAddrRes {
@@ -255,9 +139,99 @@ pub enum TransactionType {
 pub struct TransactionPage {
     /// The number of transactions returned from this query
     pub count: usize,
-    /// The total number of transactions that could ever be fetched by a query with the same
-    /// parameters
+    /// The total number of transactions that could ever be fetched from this endpoint
     pub total: usize,
     /// The transactions fetched
     pub transactions: Vec<Transaction>,
+}
+
+/// A name fetched from the Kromer2 API
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Name {
+    /// The name, without the `.kro` suffix
+    pub name: String,
+    /// The address that currently owns this name
+    pub owner: WalletAddr,
+    /// The address that originally purchased this name
+    pub original_owner: Option<WalletAddr>,
+    /// The date and time this name was registered
+    pub registered: DateTime<Utc>,
+    /// The date and time this name was last updated - eitheir the data changed, or it was transferred to a
+    /// new owner
+    pub updated: DateTime<Utc>,
+    /// The date and time this name was last transferred to a new owner.
+    pub transferred: DateTime<Utc>,
+    /// The name's data
+    pub a: String,
+    // Omit unpaid as it is unused
+}
+
+/// A page of [`names`](Name) fetched from a paginated API
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct NamePage {
+    /// The number of names returned from this query
+    pub count: usize,
+    /// The total number of transaction that could ever be fetched from this endpoint
+    pub total: usize,
+    /// The names fetched
+    pub names: Vec<Name>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(untagged)]
+pub(crate) enum AuthAddrRes {
+    Address { address: Option<WalletAddr> },
+    KristError { error: String, message: String },
+}
+
+impl ExtractJson for AuthAddrRes {
+    type Res = Option<WalletAddr>;
+
+    fn extract(self) -> Result<Self::Res, KromerError> {
+        match self {
+            Self::Address { address } => Ok(address),
+            Self::KristError { error, message } => Err(KromerError::Krist { error, message }),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+/// Message of the day. `Currency` field is ommitted since this doesn't change
+pub struct Motd {
+    // pub server_time: DateTime<Utc>,
+    /// The message of the day
+    #[serde(alias = "motd")]
+    pub msg: String,
+    /// The public URL associated with this server
+    pub public_url: String,
+    /// The websocket URL associated with this server
+    pub public_ws_url: String,
+    /// Whether transactions are currently available on the server
+    pub transactions_enabled: bool,
+    /// Whether the server is running in debug mode
+    pub debug_mode: bool,
+    /// Information about the server package currently running
+    pub package: Package,
+    /// An additional notice produced by the server
+    pub notice: String,
+}
+
+/// The package section of the [Motd] struct
+///
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct Package {
+    /// The name of the package
+    pub name: String,
+    /// The current version of the server in server
+    pub version: String,
+    /// The package authors
+    pub author: String,
+    // fucking euros
+    /// The license the server is being used under
+    #[serde(alias = "licence")]
+    pub license: String,
+    /// A link to the git repository of the server software
+    pub repository: String,
+    /// The git has of the currently running version of the server software
+    pub git_hash: String,
 }

@@ -28,9 +28,12 @@ pub enum KromerError {
     /// Errors from URL parsing
     #[error(transparent)]
     Url(#[from] url::ParseError),
-    /// Errors emmitted when parsing wallet addresses
+    /// Errors from parsing a [`WalletAddr`](model::krist::WalletAddr)
     #[error(transparent)]
     WalletAddrParse(#[from] model::krist::WalletAddrParseError),
+    /// Errors from parsing a [`WalletPrivateKey`](model::krist::WalletPrivateKey)
+    #[error(transparent)]
+    WalletPkParse(#[from] model::krist::WalletPkParseError),
 }
 
 /// A client for interacting with the Kromer2 API. See [endpoints] for info on how to
@@ -59,32 +62,6 @@ impl KromerClient {
         })
     }
 
-    pub(crate) async fn request<T>(
-        &self,
-        method: Method,
-        endpoint: &str,
-        query: Option<impl Serialize + Sized>,
-    ) -> Result<T, KromerError>
-    where
-        T: for<'de> Deserialize<'de>,
-    {
-        let mut req = self.http.request(method, self.url.join(endpoint)?);
-
-        if let Some(q) = query {
-            req = req.query(&q);
-        }
-
-        let req = req.build()?;
-        info!(headers = ?req.headers(), "{} request sent to {}", req.method(), req.url());
-
-        self.http
-            .execute(req)
-            .await?
-            .json::<T>()
-            .await
-            .map_err(KromerError::Http)
-    }
-
     #[inline]
     pub(crate) async fn get<T>(
         &self,
@@ -94,6 +71,44 @@ impl KromerClient {
     where
         T: for<'a> Deserialize<'a>,
     {
-        self.request::<T>(Method::GET, endpoint, query).await
+        let mut req = self.http.request(Method::GET, self.url.join(endpoint)?);
+
+        if let Some(q) = query {
+            req = req.query(&q);
+        }
+
+        let req = req.build()?;
+        info!("GET request sent to {}", req.url());
+
+        self.http
+            .execute(req)
+            .await?
+            .json::<T>()
+            .await
+            .map_err(KromerError::Http)
+    }
+
+    pub(crate) async fn post<T>(
+        &self,
+        endpoint: &str,
+        body: &(impl Serialize + Sized + Sync),
+    ) -> Result<T, KromerError>
+    where
+        T: for<'a> Deserialize<'a>,
+    {
+        let req = self
+            .http
+            .request(Method::POST, self.url.join(endpoint)?)
+            .json(body)
+            .build()?;
+
+        info!("POST request sent to {}", req.url());
+
+        self.http
+            .execute(req)
+            .await?
+            .json::<T>()
+            .await
+            .map_err(KromerError::Http)
     }
 }

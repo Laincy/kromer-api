@@ -5,15 +5,15 @@ The `kromer-api` crate provides a strongly typed interface for interacting with 
 ## Features
 
 - [ ] Krist API
-  - [ ] Address Endpoints
+  - [x] Address Endpoints
     - [x] [Get an address](https://krist.dev/docs/#api-AddressGroup-GetAddress)
     - [x] [List addresses](https://krist.dev/docs/#api-AddressGroup-GetAddresses)
     - [x] [List richest](https://krist.dev/docs/#api-AddressGroup-GetRichAddresses)
     - [x] [Get recent transactions from an address](https://krist.dev/docs/#api-AddressGroup-GetAddressTransactions)
-    - [ ] [Get all names under an address](https://krist.dev/docs/#api-AddressGroup-GetAddressNames)
+    - [x] [Get all names under an address](https://krist.dev/docs/#api-AddressGroup-GetAddressNames)
   - [ ] Misc. Endpoints
-    - [ ] [Authenticate an address](https://krist.dev/docs/#api-MiscellaneousGroup-Login)
-    - [ ] [Get MOTD](https://krist.dev/docs/#api-MiscellaneousGroup-GetMOTD_+)
+    - [x] [Authenticate an address](https://krist.dev/docs/#api-MiscellaneousGroup-Login)
+    - [x] [Get MOTD](https://krist.dev/docs/#api-MiscellaneousGroup-GetMOTD_+)
     - [ ] [Get latest KristWallet version](https://krist.dev/docs/#api-MiscellaneousGroup-GetWalletVersion)
     - [ ] [Get the money supply]("https://krist.dev/docs/#api-MiscellaneousGroup-GetMoneySupply")
     - [ ] [Get v2 address from private key](https://krist.dev/docs/#api-MiscellaneousGroup-MakeV2Address)
@@ -34,7 +34,7 @@ The `kromer-api` crate provides a strongly typed interface for interacting with 
   - [ ] The lookup API will be implemented under a feature flag once Kromer2 has made signifigant progress in their own implementation of the API
   - [ ] The websocket API will be implemented under a feature flag once the Krist API is feature complete
 - [ ] Kromer2 API
-  - [ ] Wallet
+  - [ ] Walet
     - [ ] Get by UUID
     - [ ] Get by name
   - [ ] Internal API (`internal` feature)
