@@ -11,12 +11,11 @@ The `kromer-api` crate provides a strongly typed interface for interacting with 
     - [x] [List richest](https://krist.dev/docs/#api-AddressGroup-GetRichAddresses)
     - [x] [Get recent transactions from an address](https://krist.dev/docs/#api-AddressGroup-GetAddressTransactions)
     - [x] [Get all names under an address](https://krist.dev/docs/#api-AddressGroup-GetAddressNames)
-  - [ ] Misc. Endpoints
+  - [x] Misc. Endpoints
     - [x] [Authenticate an address](https://krist.dev/docs/#api-MiscellaneousGroup-Login)
     - [x] [Get MOTD](https://krist.dev/docs/#api-MiscellaneousGroup-GetMOTD_+)
-    - [ ] [Get latest KristWallet version](https://krist.dev/docs/#api-MiscellaneousGroup-GetWalletVersion)
-    - [ ] [Get the money supply]("https://krist.dev/docs/#api-MiscellaneousGroup-GetMoneySupply")
-    - [ ] [Get v2 address from private key](https://krist.dev/docs/#api-MiscellaneousGroup-MakeV2Address)
+    - [x] [Get the money supply]("https://krist.dev/docs/#api-MiscellaneousGroup-GetMoneySupply")
+    - [x] [Get v2 address from private key](https://krist.dev/docs/#api-MiscellaneousGroup-MakeV2Address)
   - [ ] Name Endpoints
     - [ ] [Get a name](https://krist.dev/docs/#api-NameGroup-GetName)
     - [ ] [List names](https://krist.dev/docs/#api-NameGroup-GetNames)

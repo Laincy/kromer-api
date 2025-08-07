@@ -1,4 +1,5 @@
 //! Type models for the Krist compatability layer of the Kromer2 API
+//!
 
 pub use wallet_addr::{WalletAddr, WalletAddrParseError};
 pub use wallet_pk::{WalletPkParseError, WalletPrivateKey};
@@ -234,4 +235,40 @@ pub struct Package {
     pub repository: String,
     /// The git has of the currently running version of the server software
     pub git_hash: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(untagged)]
+pub(crate) enum MoneySupplyRes {
+    Supply { money_supply: Decimal },
+    KristError { error: String, message: String },
+}
+
+impl ExtractJson for MoneySupplyRes {
+    type Res = Decimal;
+
+    fn extract(self) -> Result<Self::Res, KromerError> {
+        match self {
+            Self::Supply { money_supply } => Ok(money_supply),
+            Self::KristError { error, message } => Err(KromerError::Krist { error, message }),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(untagged)]
+pub(crate) enum GetV2AddrRes {
+    Address { address: WalletAddr },
+    KristError { error: String, message: String },
+}
+
+impl ExtractJson for GetV2AddrRes {
+    type Res = WalletAddr;
+
+    fn extract(self) -> Result<Self::Res, KromerError> {
+        match self {
+            Self::Address { address } => Ok(address),
+            Self::KristError { error, message } => Err(KromerError::Krist { error, message }),
+        }
+    }
 }

@@ -1,9 +1,12 @@
 use crate::{
     KromerClient, KromerError,
     endpoints::Endpoint,
-    model::krist::{AuthAddrRes, ExtractJson, Motd, WalletAddr, WalletPrivateKey},
+    model::krist::{
+        AuthAddrRes, ExtractJson, GetV2AddrRes, MoneySupplyRes, Motd, WalletAddr, WalletPrivateKey,
+    },
 };
 use async_trait::async_trait;
+use rust_decimal::Decimal;
 use serde::Serialize;
 
 /// An endpoint for authenticating a [`WalletAddr`] using a [`WalletPrivateKey`]
@@ -64,5 +67,56 @@ impl Endpoint for GetMotdEp {
             .error_for_status()?
             .json::<Self::Value>()
             .await?)
+    }
+}
+
+/// An endpoint for getting the amount of money in circulation
+#[derive(Debug, Default, Clone, Copy)]
+pub struct GetMoneySupplyEp;
+
+impl GetMoneySupplyEp {
+    /// Creates a new [`GetMoneySupplyEp`]
+    #[must_use]
+    pub const fn new() -> Self {
+        Self
+    }
+}
+
+#[async_trait]
+impl Endpoint for GetMoneySupplyEp {
+    type Value = Decimal;
+
+    async fn query(&self, client: &KromerClient) -> Result<Self::Value, KromerError> {
+        client
+            .get::<MoneySupplyRes>("/api/krist/supply", None::<()>)
+            .await?
+            .extract()
+    }
+}
+
+/// An endpoint for turning a [`WalletPrivateKey`] into a [`WalletAddr`]
+#[derive(Debug, Serialize, Clone, Copy)]
+pub struct GetV2FromPkEp {
+    #[serde(rename = "privatekey")]
+    pk: WalletPrivateKey,
+}
+
+impl GetV2FromPkEp {
+    /// Creates a new [`GetV2FromPkEp`]
+    #[must_use]
+    pub const fn new(pk: WalletPrivateKey) -> Self {
+        Self { pk }
+    }
+}
+
+#[async_trait]
+impl Endpoint for GetV2FromPkEp {
+    type Value = WalletAddr;
+
+    async fn query(&self, client: &KromerClient) -> Result<Self::Value, KromerError> {
+        client
+            .post::<GetV2AddrRes>("/api/krist/v2", self)
+            .await?
+            .extract()
     }
 }
