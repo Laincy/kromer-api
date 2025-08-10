@@ -9,7 +9,7 @@ use reqwest::header;
 use reqwest::{Client, Url};
 use serde::{Deserialize, Serialize};
 use snafu::{ResultExt, Snafu};
-use tracing::info;
+use tracing::{info, warn};
 
 use crate::model::krist::RawKristError;
 
@@ -120,6 +120,7 @@ impl KromerClient {
             .context(RequestFailedSnafu {})?;
 
         if !response.status().is_success() {
+            warn!("Recieved HTTP response {}", response.status());
             let err = response
                 .json::<RawKristError>()
                 .await
@@ -160,6 +161,8 @@ impl KromerClient {
             .context(RequestFailedSnafu {})?;
 
         if !response.status().is_success() {
+            warn!("Recieved HTTP response {}", response.status());
+
             let err = response
                 .json::<RawKristError>()
                 .await

@@ -1,7 +1,8 @@
 use crate::{
     endpoints::{Endpoint, Paginated, PaginatedEndpoint},
-    model::krist::{Name, NameInfo, NamePage, PrivateKey},
+    model::krist::{Address, Name, NameInfo, NamePage, PrivateKey},
 };
+
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
@@ -15,8 +16,8 @@ pub struct GetNameEp {
 
 impl GetNameEp {
     /// Creates a new [`GetNameEp`]
-    ///
-    /// * `name` - The name you wish to fetch, without the .kro extension
+    /// # Arguments
+    /// * `name` - The [`Name`] to fetch
     #[must_use]
     pub const fn new(name: Name) -> Self {
         Self { name }
@@ -135,13 +136,15 @@ impl Endpoint for GetNameCostEp {
 /// See: <https://krist.dev/docs/#api-NameGroup-CheckName>
 #[derive(Debug, Clone)]
 pub struct CheckNameAvailEp {
-    name: String,
+    name: Name,
 }
 
 impl CheckNameAvailEp {
     /// Creates a new [`CheckNameAvailEp`]
+    /// # Arguments
+    /// * `name` - The [`Name`] you would like to check
     #[must_use]
-    pub const fn new(name: String) -> Self {
+    pub const fn new(name: Name) -> Self {
         Self { name }
     }
 }
@@ -175,6 +178,9 @@ pub struct RegisterNameEp {
 
 impl RegisterNameEp {
     /// Creates a new [`RegisterNameEp`]
+    /// # Arguments
+    /// * `name`: The [`Name`] you would like to register
+    /// * `pk`: The [`PrivateKey`] of the address that the will pay for and own the name
     #[must_use]
     pub const fn new(name: Name, pk: PrivateKey) -> Self {
         Self { name, pk }
@@ -184,9 +190,82 @@ impl RegisterNameEp {
 impl Endpoint for RegisterNameEp {
     type Value = ();
 
-    /// UNTESTED FUNCTION BECAUSE I'm BROKE AND CAN'T BE BOTHERED TO MAKE A PROPER TEST RIG
+    /// UNTESTED FUNCTION BECAUSE I'M BROKE AND CAN'T BE BOTHERED TO MAKE A PROPER TEST RIG
     async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
         let url = format!("/api/krist/names/{}", self.name);
         client.post::<()>(&url, self).await
+    }
+}
+
+/// An endpoint for transferring a [`Name`] to a new [`Address`]
+///
+/// See: <https://krist.dev/docs/#api-NameGroup-TransferName>
+#[derive(Debug, Serialize, Clone)]
+pub struct TransferNameEp {
+    #[serde(skip)]
+    name: Name,
+    #[serde(rename = "address")]
+    addr: Address,
+    #[serde(rename = "privatekey")]
+    pk: PrivateKey,
+}
+
+impl TransferNameEp {
+    /// Creates a new [`TransferNameEp`]
+    /// # Arguments
+    /// * `name` - The [`Name`] that you want to transfer
+    /// * `addr` - The [`Address`] that you would like to transfer the name to
+    /// * `pk` - The [`PrivateKey`] of the address that currently owns the name
+    #[must_use]
+    pub const fn new(name: Name, addr: Address, pk: PrivateKey) -> Self {
+        Self { name, addr, pk }
+    }
+}
+
+impl Endpoint for TransferNameEp {
+    type Value = NameInfo;
+
+    /// UNTESTED FUNCTION BECAUSE I'M BROKE AND CAN'T BE BOTHERED TO MAKE A PROPER TEST RIG
+    async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+        let url = format!("/api/krist/names/{}/transfer", self.name);
+
+        Ok(client.post::<NameRes>(&url, self).await?.name)
+    }
+}
+
+/// Endpoint for updating the metadata of a [`Name`]. While this endpoint uses the `POST` method,
+/// it does the exact same thiing that the redundant Krist `PUT` endpoint would as well.
+///
+/// See: <https://krist.dev/docs/#api-NameGroup-UpdateNamePOST>
+#[derive(Debug, Serialize, Clone)]
+pub struct UpdateNameEp {
+    #[serde(skip)]
+    name: Name,
+    #[serde(rename = "privatekey")]
+    pk: PrivateKey,
+    a: Option<String>,
+}
+
+impl UpdateNameEp {
+    /// Creates a new [`UpdateNameEp`]
+    /// # Arguments
+    /// * `name` - The [`Name`] to update
+    /// * `meta` - The metadata to set. Leaving this as `None` will remove all data
+    #[must_use]
+    pub fn new(name: Name, meta: Option<String>, pk: PrivateKey) -> Self {
+        let a = meta.filter(String::is_empty);
+
+        Self { name, pk, a }
+    }
+}
+
+impl Endpoint for UpdateNameEp {
+    type Value = NameInfo;
+
+    /// UNTESTED FUNCTION BECAUSE I'M BROKE AND CAN'T BE BOTHERED TO MAKE A PROPER TEST RIG
+    async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+        let url = format!("/api/krist/names/{}/update", self.name);
+
+        Ok(client.post::<NameRes>(&url, self).await?.name)
     }
 }

@@ -2,6 +2,14 @@
 
 The `kromer-api` crate provides a strongly typed interface for interacting with the [Kromer2](https://github.com/ReconnectedCC/kromer2) server. It omits backwards compatability parts of the API, such as those that deal with Krist mining.
 
+Everything should be pretty well documented. For more info checkout the docs locally by running the following:
+
+```bash
+cargo doc --open
+```
+
+Or visit the Krist API documentatiot <https://krist.dev/docs/>
+
 ## Features
 
 - [ ] Krist API
@@ -15,15 +23,15 @@ The `kromer-api` crate provides a strongly typed interface for interacting with 
     - [x] [Authenticate an address](https://krist.dev/docs/#api-MiscellaneousGroup-Login)
     - [x] [Get MOTD](https://krist.dev/docs/#api-MiscellaneousGroup-GetMOTD_+)
     - [x] [Get the money supply]("https://krist.dev/docs/#api-MiscellaneousGroup-GetMoneySupply")
-  - [ ] Name Endpoints
+  - [x] Name Endpoints
     - [x] [Get a name](https://krist.dev/docs/#api-NameGroup-GetName)
     - [x] [List names](https://krist.dev/docs/#api-NameGroup-GetNames)
     - [x] [List newest names](https://krist.dev/docs/#api-NameGroup-GetNewNames)
     - [x] [Get cost of a name](https://krist.dev/docs/#api-NameGroup-CheckName)
     - [x] [Check availability of a name](https://krist.dev/docs/#api-NameGroup-CheckName)
-    - [ ] [Register a name](https://krist.dev/docs/#api-NameGroup-RegisterName)
-    - [ ] [Transfer a name](https://krist.dev/docs/#api-NameGroup-TransferName)
-    - [ ] [Update a name](https://krist.dev/docs/#api-NameGroup-UpdateNamePOST)
+    - [x] [Register a name](https://krist.dev/docs/#api-NameGroup-RegisterName)
+    - [x] [Transfer a name](https://krist.dev/docs/#api-NameGroup-TransferName)
+    - [x] [Update a name](https://krist.dev/docs/#api-NameGroup-UpdateNamePOST)
   - [ ] Transaction Endpoints
     - [ ] [List all transactions](https://krist.dev/docs/#api-TransactionGroup-GetTransactions)
     - [ ] [List latest transactions](https://krist.dev/docs/#api-TransactionGroup-GetLatestTransactions)
@@ -46,4 +54,5 @@ There are some notable things that I've left out of this crate becuase they are 
 
 - **Make V2 Address**: Use the `Address::From<PrivateKey>` trait implementation instead
 - **List Newest Names**: There are no new/unpaid names in Kromer2. This endpoint is purely for compatability
+- **Redundant Name Update Endpoints**: Krist and kromer have multiple endpoints for updating the metadata of a name. Here, we use the `POST` endpoint only, not the `PUT` one
 - **Misc. Mining**: Left out alot of things to do with mining of Krist since Kromer doesn't support this. If you still want to harm the environment, consider vanity address mining.

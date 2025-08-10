@@ -10,7 +10,7 @@ async fn main() -> Result<(), Error> {
 
     let client = KromerClient::new("https://kromer.reconnected.cc")?;
 
-    let (wallet, _) = GetWalletEp::new(Address::ServerWelf).query(&client).await?;
+    let (wallet, _names) = GetWalletEp::new(Address::ServerWelf).query(&client).await?;
 
     println!("serverwelf balance: {:?}", wallet.balance);
 

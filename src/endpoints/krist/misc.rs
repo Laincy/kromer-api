@@ -5,7 +5,7 @@ use crate::{
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
-/// An endpoint for authenticating a [`WalletAddr`] using a [`WalletPrivateKey`]
+/// An endpoint for authenticating an [`Address`] using a [`PrivateKey`]
 ///
 /// Returns an [`Option`] with `Some` if the wallet existed, and `None` if it did not.
 ///
@@ -18,6 +18,8 @@ pub struct AuthAddrEp {
 
 impl AuthAddrEp {
     /// Creates a new [`AuthAddrEp`]
+    /// # Arguments
+    /// * `pk` - The [`PrivateKey`] you would like to authenticate
     #[must_use]
     pub const fn new(pk: PrivateKey) -> Self {
         Self { pk }
