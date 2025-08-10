@@ -1,202 +1,125 @@
-//! Type models for the Krist compatability layer of the Kromer2 API
-//!
+//! Types modelling the Krist compatible section of the Kromer2 API
 
-pub use wallet_addr::{WalletAddr, WalletAddrParseError};
-pub use wallet_pk::{WalletPkParseError, WalletPrivateKey};
-
-mod wallet_addr;
-mod wallet_pk;
-
-use crate::KromerError;
-use chrono::DateTime;
-use chrono::Utc;
-use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+use snafu::{OptionExt, Snafu, ensure};
+use std::fmt::Debug;
 
-/// Shared behavior for internal krist types
-pub(crate) trait ExtractJson {
-    /// The value we wish to extract
-    type Res;
+pub use names::*;
+pub use transactions::*;
+pub use wallet::*;
 
-    /// Extracts a value from its deserialized JSON wrapper
-    fn extract(self) -> Result<Self::Res, KromerError>;
-}
+mod names;
+mod transactions;
+mod wallet;
 
-/// A wallet fetched from the Kromer2 API
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
-pub struct Wallet {
-    /// The address associated with this wallet
-    #[allow(clippy::struct_field_names)]
-    pub address: WalletAddr,
-    /// The amount of Kromer owned by this address
-    pub balance: Decimal,
-    /// The total amount of Kromer that has ever gone into this address.
-    #[serde(alias = "totalin")]
-    pub total_in: Decimal,
-    /// The total amount of Kromer that has ever gone out this address.
-    #[serde(alias = "totalout")]
-    pub total_out: Decimal,
-    /// The date and time at which this wallet's first transaction was made.
-    #[serde(alias = "firstseen")]
-    pub first_seen: DateTime<Utc>,
-    /// The numbeer of names owned by this wallet. Only present when using the `fetchNames`
-    /// parameter under [`GetAddrEp`](`crate::endpoints::krist::GetAddrEp`)
-    pub names: Option<u32>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(untagged)]
-pub(crate) enum GetAddrRes {
-    Address { address: Wallet },
-    KristError { error: String, message: String },
-}
-
-impl ExtractJson for GetAddrRes {
-    type Res = Wallet;
-
-    fn extract(self) -> Result<Self::Res, KromerError> {
-        match self {
-            Self::Address { address } => Ok(address),
-            Self::KristError { error, message } => Err(KromerError::Krist { error, message }),
-        }
-    }
-}
-
-/// A page of wallets fetched from a paginated API
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct WalletPage {
-    /// The number of wallets returned in this query
-    pub count: usize,
-    /// The total number of wallets fetchable from the endpoint this value came from
-    pub total: usize,
-    /// The wallets fetched from this query
-    #[serde(alias = "addresses")]
-    pub wallets: Vec<Wallet>,
-}
-
-/// An intermediary result when using paginated endpoints
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(untagged)]
-pub(crate) enum PageRes<T> {
-    Page(T),
-    KristError { error: String, message: String },
-}
-
-impl<T> ExtractJson for PageRes<T> {
-    type Res = T;
-
-    fn extract(self) -> Result<Self::Res, KromerError> {
-        match self {
-            Self::Page(p) => Ok(p),
-            Self::KristError { error, message } => Err(KromerError::Krist { error, message }),
-        }
-    }
-}
-
-/// A Kromer2 transaction fetched from the API
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Transaction {
-    /// The ID of this transaction
-    pub id: u32,
-    /// The address sending this transaction.
-    pub from: Option<WalletAddr>,
-    /// The address receiving this transaction. Will be `"name"` if the transaction was a name
-    /// purchase, or `"a"` if it was a name's data change.
-    pub to: WalletAddr,
-    /// The amount of Kromer transferred in this transaction. Can be 0, notably if the transaction
-    /// was a name's data change.
-    pub value: Decimal,
-    /// The date and time this transaction was made.
-    pub time: DateTime<Utc>,
-    /// The name associated with this transaction if there is one, without the `.kro` suffix.
-    pub name: Option<String>,
-    // TODO: Implement metadata parsing
-    /// Transaction metadata
-    pub metadata: Option<String>,
-    /// The metaname (part before the `"@"`) of the recipiuent of the transaction, if it was sent to
-    /// a name.
-    pub sent_metaname: Option<String>,
-    /// The name this transaction was sent to, without the `.kro` suffix, if it was sent to a name.
-    pub sent_name: Option<String>,
-    #[serde(alias = "type")]
-    /// The type of this transaction.
-    pub transaction_type: TransactionType,
-}
-
-/// The type of a [`Transaction`]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "snake_case")]
+/// Errors that can be emmitted by the Krist API
+#[derive(Debug, Snafu, PartialEq, Eq)]
 #[allow(missing_docs)]
-pub enum TransactionType {
-    Mined,
-    Transfer,
-    NamePurchase,
-    NameARecord,
-    NameTransfer,
+#[snafu(visibility(pub(crate)))]
+pub enum KristError {
+    // We skip generic and path errors since they (in theory) shouldn't occur. Might change this to
+    // pass them on later as well.
+    //
+    // I will probably implement websocket errors as a seperate type, since they shouldn't conflict
+    // *too* often
+    #[snafu(display(r#"Address "{addr}" could not be found"#))]
+    AddrNotFound {
+        // String used here instead of address so that we can still bubble up the returned value
+        // even if it's not a valid address. It should always be since we'll only submit valid
+        // addresses, but still
+        addr: String,
+    },
+    #[snafu(display("Authentication failed"))]
+    AuthFailed,
+    #[snafu(display(r#"Could't find name "{name}""#))]
+    NameNotFound { name: String },
+    #[snafu(display(r#"Name "{name}" is already taken "#))]
+    NameTaken { name: String },
+    #[snafu(display(r#"Client is not authorized to modify name "{name}""#))]
+    NotNameOwner { name: String },
+    // TODO: Make sure that the `InsufficientFunds` error also maps to this
+    #[snafu(display("Insufficent balance"))]
+    InsufficientBalance,
+    #[snafu(display("Could not find transaction"))]
+    TransactionNotFound,
+    #[snafu(display("Trasactions are disabled on this server"))]
+    TransactionsDisabled,
+    // TODO
+    /// This library *should* prevent this, but it's here anyways
+    #[snafu(display("Attempted to transfer into the same wallet"))]
+    SameWalletTransfer,
+    #[snafu(display(r#"Transaction conflict for parameter "{param}""#))]
+    TransactionConflict { param: String },
+    /// Various internal errors are exposed under the same name in the `error` field of the JSON
+    /// response, but have different messages. We just pass the message up
+    /// much we're able to to about it.
+    #[snafu(display("Kromer2 server error: {message}"))]
+    InternalServerError { message: String },
+    #[snafu(display("Recieved an unexpected response"))]
+    UnexpectedResponse,
 }
 
-/// A page of [`transactions`](Transaction) fetched from a paginated API
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct TransactionPage {
-    /// The number of transactions returned from this query
-    pub count: usize,
-    /// The total number of transactions that could ever be fetched from this endpoint
-    pub total: usize,
-    /// The transactions fetched
-    pub transactions: Vec<Transaction>,
+#[derive(Debug, Deserialize)]
+pub(crate) struct RawKristError {
+    error: String,
+    message: String,
 }
 
-/// A name fetched from the Kromer2 API
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Name {
-    /// The name, without the `.kro` suffix
-    pub name: String,
-    /// The address that currently owns this name
-    pub owner: WalletAddr,
-    /// The address that originally purchased this name
-    pub original_owner: Option<WalletAddr>,
-    /// The date and time this name was registered
-    pub registered: DateTime<Utc>,
-    /// The date and time this name was last updated - eitheir the data changed, or it was transferred to a
-    /// new owner
-    pub updated: Option<DateTime<Utc>>,
-    /// The date and time this name was last transferred to a new owner.
-    pub transferred: Option<DateTime<Utc>>,
-    /// The amount unpaid on the purchase of this name
-    pub unpaid: Decimal,
-}
+impl RawKristError {
+    pub fn parse(self) -> Result<(), KristError> {
+        let find_between = |first: &str, last: &str| -> Result<&str, KristError> {
+            let word_start =
+                first.len() + self.message.find(first).context(UnexpectedResponseSnafu)?;
+            let word_end = self.message.find(last).context(UnexpectedResponseSnafu)?;
 
-/// A page of [`names`](Name) fetched from a paginated API
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct NamePage {
-    /// The number of names returned from this query
-    pub count: usize,
-    /// The total number of transaction that could ever be fetched from this endpoint
-    pub total: usize,
-    /// The names fetched
-    pub names: Vec<Name>,
-}
+            Ok(&self.message[word_start..word_end])
+        };
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(untagged)]
-pub(crate) enum AuthAddrRes {
-    Address { address: Option<WalletAddr> },
-    KristError { error: String, message: String },
-}
+        Err(match self.error.as_str() {
+            "address_not_found" => {
+                let addr = find_between("Address ", " not found")?.to_string();
 
-impl ExtractJson for AuthAddrRes {
-    type Res = Option<WalletAddr>;
+                KristError::AddrNotFound { addr }
+            }
+            "auth_failed" => KristError::AuthFailed,
+            "name_not_found" => {
+                let name = find_between("Name ", " not found")?.to_string();
 
-    fn extract(self) -> Result<Self::Res, KromerError> {
-        match self {
-            Self::Address { address } => Ok(address),
-            Self::KristError { error, message } => Err(KromerError::Krist { error, message }),
-        }
+                KristError::NameNotFound { name }
+            }
+            "name_taken" => {
+                let name = find_between("Name ", " is already taken")?.to_string();
+
+                KristError::NameTaken { name }
+            }
+            "not_name_owner" => {
+                ensure!(self.message.len() > 30, UnexpectedResponseSnafu);
+
+                let name = self.message[31..].to_string();
+
+                KristError::NotNameOwner { name }
+            }
+            "insufficient_balance" | "insufficient_funds" => KristError::InsufficientBalance,
+            "transaction_not_found" => KristError::TransactionNotFound,
+            "transactions_disabled" => KristError::TransactionsDisabled,
+            "same_wallet_transfer" => KristError::SameWalletTransfer,
+            "transaction_conflict" => {
+                ensure!(self.message.len() > 35, UnexpectedResponseSnafu);
+
+                let param = self.message[36..].to_string();
+
+                KristError::TransactionConflict { param }
+            }
+            "internal_server_self.r" => KristError::InternalServerError {
+                message: self.message,
+            },
+            _ => KristError::UnexpectedResponse,
+        })
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
 /// Message of the day. `Currency` field is ommitted since this doesn't change
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Motd {
     // pub server_time: DateTime<Utc>,
     /// The message of the day
@@ -217,7 +140,6 @@ pub struct Motd {
 }
 
 /// The package section of the [Motd] struct
-///
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Package {
     /// The name of the package
@@ -234,94 +156,4 @@ pub struct Package {
     pub repository: String,
     /// The git has of the currently running version of the server software
     pub git_hash: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(untagged)]
-pub(crate) enum MoneySupplyRes {
-    Supply { money_supply: Decimal },
-    KristError { error: String, message: String },
-}
-
-impl ExtractJson for MoneySupplyRes {
-    type Res = Decimal;
-
-    fn extract(self) -> Result<Self::Res, KromerError> {
-        match self {
-            Self::Supply { money_supply } => Ok(money_supply),
-            Self::KristError { error, message } => Err(KromerError::Krist { error, message }),
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(untagged)]
-pub(crate) enum GetV2AddrRes {
-    Address { address: WalletAddr },
-    KristError { error: String, message: String },
-}
-
-impl ExtractJson for GetV2AddrRes {
-    type Res = WalletAddr;
-
-    fn extract(self) -> Result<Self::Res, KromerError> {
-        match self {
-            Self::Address { address } => Ok(address),
-            Self::KristError { error, message } => Err(KromerError::Krist { error, message }),
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(untagged)]
-pub(crate) enum GetNameRes {
-    Name { name: Name },
-    KristError { error: String, message: String },
-}
-
-impl ExtractJson for GetNameRes {
-    type Res = Name;
-
-    fn extract(self) -> Result<Self::Res, KromerError> {
-        match self {
-            Self::Name { name } => Ok(name),
-            Self::KristError { error, message } => Err(KromerError::Krist { error, message }),
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(untagged)]
-pub(crate) enum GetCostRes {
-    Cost { name_cost: Decimal },
-    KristError { error: String, message: String },
-}
-
-impl ExtractJson for GetCostRes {
-    type Res = Decimal;
-
-    fn extract(self) -> Result<Self::Res, KromerError> {
-        match self {
-            Self::Cost { name_cost } => Ok(name_cost),
-            Self::KristError { error, message } => Err(KromerError::Krist { error, message }),
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(untagged)]
-pub(crate) enum GetNameAvailRes {
-    Avail { available: bool },
-    KristError { error: String, message: String },
-}
-
-impl ExtractJson for GetNameAvailRes {
-    type Res = bool;
-
-    fn extract(self) -> Result<Self::Res, KromerError> {
-        match self {
-            Self::Avail { available } => Ok(available),
-            Self::KristError { error, message } => Err(KromerError::Krist { error, message }),
-        }
-    }
 }

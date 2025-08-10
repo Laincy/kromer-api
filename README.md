@@ -15,7 +15,6 @@ The `kromer-api` crate provides a strongly typed interface for interacting with 
     - [x] [Authenticate an address](https://krist.dev/docs/#api-MiscellaneousGroup-Login)
     - [x] [Get MOTD](https://krist.dev/docs/#api-MiscellaneousGroup-GetMOTD_+)
     - [x] [Get the money supply]("https://krist.dev/docs/#api-MiscellaneousGroup-GetMoneySupply")
-    - [x] [Get v2 address from private key](https://krist.dev/docs/#api-MiscellaneousGroup-MakeV2Address)
   - [ ] Name Endpoints
     - [x] [Get a name](https://krist.dev/docs/#api-NameGroup-GetName)
     - [x] [List names](https://krist.dev/docs/#api-NameGroup-GetNames)
@@ -40,3 +39,11 @@ The `kromer-api` crate provides a strongly typed interface for interacting with 
     - [ ] Create wallet
     - [ ] Give wallet money
     - [ ] Get wallet by UUID
+
+## Ommissions
+
+There are some notable things that I've left out of this crate becuase they are eitheir not needed for the Kromer2 API, or there are better ways to do it.
+
+- **Make V2 Address**: Use the `Address::From<PrivateKey>` trait implementation instead
+- **List Newest Names**: There are no new/unpaid names in Kromer2. This endpoint is purely for compatability
+- **Misc. Mining**: Left out alot of things to do with mining of Krist since Kromer doesn't support this. If you still want to harm the environment, consider vanity address mining.

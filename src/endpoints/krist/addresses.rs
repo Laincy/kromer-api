@@ -1,65 +1,87 @@
-//! Endpoints under `/api/krist/addresses/`
-
-use crate::endpoints::PaginatedEndpoint;
 use crate::{
-    KromerClient, KromerError,
-    endpoints::{Endpoint, Paginated},
-    model::krist::{
-        ExtractJson, GetAddrRes, NamePage, PageRes, TransactionPage, Wallet, WalletAddr, WalletPage,
-    },
+    endpoints::{Endpoint, Paginated, PaginatedEndpoint},
+    model::krist::{Address, NamePage, TransactionPage, Wallet, WalletPage},
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-/// An endpoint for fetching a [`Wallet`] by [`WalletAddr`]
+/// An endpoint for fetching a [`Wallet`] using an [`Address`]
 ///
-/// See: <https://krist.dev/docs/pi-AddressGroup-GetAddress>
-#[derive(Debug, Serialize)]
-pub struct GetAddrEp {
-    #[serde(skip_serializing)]
-    addr: WalletAddr,
+/// See: <https://krist.dev/docs/#api-AddressGroup-GetAddress>
+#[derive(Debug, Serialize, Clone, Copy)]
+pub struct GetWalletEp {
+    #[serde(skip)]
+    addr: Address,
     #[serde(rename = "fetchNames")]
     query_names: bool,
 }
 
-impl GetAddrEp {
-    /// Creates a new [`GetAddrEp`]
+impl GetWalletEp {
+    /// Creates a new [`GetWalletEp`]
     #[must_use]
-    pub const fn new(addr: WalletAddr) -> Self {
+    pub const fn new(addr: Address) -> Self {
         Self {
             addr,
             query_names: false,
         }
     }
 
+    /// Sets the `fetchNames` parameter.
     #[must_use]
-    /// Sets the fetchNames query parameter
-    pub const fn fetch_names(mut self, v: bool) -> Self {
-        self.query_names = v;
+    pub const fn fetch_names(mut self, b: bool) -> Self {
+        self.query_names = b;
         self
     }
 }
 
-impl Endpoint for GetAddrEp {
-    type Value = Wallet;
+#[derive(Debug, Deserialize, Serialize)]
+struct GetWalletRes {
+    address: GetWalletResInner,
+}
 
-    async fn query(&self, client: &KromerClient) -> Result<Self::Value, KromerError> {
+#[derive(Debug, Deserialize, Serialize)]
+struct GetWalletResInner {
+    #[serde(flatten)]
+    wallet: Wallet,
+    names: Option<u32>,
+}
+
+impl Endpoint for GetWalletEp {
+    type Value = (Wallet, Option<u32>);
+
+    /// Gets the desired value from the API. Returns a tuple where the
+    /// first value is the [`Wallet`] and the second is the optional
+    /// names field, containing the number of names a wallet owns.
+    /// This field will only be [`Some`] in the event that the `fetchNames`
+    /// parameter was set to true. Otherwise it can be safely ignored.
+    async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
         let url = format!("/api/krist/addresses/{}", self.addr);
 
-        client.get::<GetAddrRes>(&url, Some(&self)).await?.extract()
+        let res = client.get::<GetWalletRes>(&url, Some(self)).await?.address;
+
+        Ok((res.wallet, res.names))
     }
 }
 
 /// An endpoint for listing [`Wallets`](Wallet) as a [`WalletPage`]
 ///
-/// See: <https://krist.dev/docs/pi-AddressGroup-GetAddreses>
+/// See: <https://krist.dev/docs/#api-AddressGroup-GetAddresses>
 #[derive(Debug, Serialize, Clone, Copy)]
-pub struct ListAddrsEp {
+pub struct ListWalletsEp {
     offset: usize,
     limit: usize,
 }
 
-impl ListAddrsEp {
-    /// Creates a new [`ListAddrsEp`]
+impl Default for ListWalletsEp {
+    fn default() -> Self {
+        Self {
+            offset: 0,
+            limit: 50,
+        }
+    }
+}
+
+impl ListWalletsEp {
+    /// Creates a new [`ListWalletsEp`]
     #[must_use]
     pub const fn new() -> Self {
         Self {
@@ -69,16 +91,7 @@ impl ListAddrsEp {
     }
 }
 
-impl Default for ListAddrsEp {
-    fn default() -> Self {
-        Self {
-            offset: 0,
-            limit: 50,
-        }
-    }
-}
-
-impl Paginated for ListAddrsEp {
+impl Paginated for ListWalletsEp {
     fn limit(mut self, v: usize) -> Self {
         self.limit = v.clamp(1, 1000);
         self
@@ -90,19 +103,19 @@ impl Paginated for ListAddrsEp {
     }
 }
 
-impl Endpoint for ListAddrsEp {
+impl Endpoint for ListWalletsEp {
     type Value = WalletPage;
 
-    async fn query(&self, client: &KromerClient) -> Result<Self::Value, KromerError> {
-        client
-            .get::<PageRes<Self::Value>>("/api/krist/addresses", Some(self))
-            .await?
-            .extract()
+    async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+        client.get("/api/krist/addresses", Some(self)).await
     }
 }
 
-impl PaginatedEndpoint for ListAddrsEp {
-    async fn query_page(&mut self, client: &KromerClient) -> Result<Self::Value, KromerError> {
+impl PaginatedEndpoint for ListWalletsEp {
+    async fn query_page(
+        &mut self,
+        client: &crate::KromerClient,
+    ) -> Result<Self::Value, crate::Error> {
         let res = self.query(client).await?;
 
         self.offset += res.count;
@@ -113,15 +126,24 @@ impl PaginatedEndpoint for ListAddrsEp {
 
 /// An endpoint for fetching the richest [`Wallets`](Wallet) as a [`WalletPage`]
 ///
-/// See: <https://krist.dev/docs/pi-AddressGroup-GetAddreses>
-#[derive(Debug, Serialize)]
-pub struct RichAddrsEp {
+/// See: <https://krist.dev/docs/#api-AddressGroup-GetRichAddresses>
+#[derive(Debug, Serialize, Clone, Copy)]
+pub struct RichWalletsEp {
     offset: usize,
     limit: usize,
 }
 
-impl RichAddrsEp {
-    /// Creates a new [`RichAddrsEp`]
+impl Default for RichWalletsEp {
+    fn default() -> Self {
+        Self {
+            offset: 0,
+            limit: 50,
+        }
+    }
+}
+
+impl RichWalletsEp {
+    /// Creates a new [`RichWalletsEp`]
     #[must_use]
     pub const fn new() -> Self {
         Self {
@@ -131,16 +153,7 @@ impl RichAddrsEp {
     }
 }
 
-impl Default for RichAddrsEp {
-    fn default() -> Self {
-        Self {
-            offset: 0,
-            limit: 50,
-        }
-    }
-}
-
-impl Paginated for RichAddrsEp {
+impl Paginated for RichWalletsEp {
     fn limit(mut self, v: usize) -> Self {
         self.limit = v.clamp(1, 1000);
         self
@@ -152,63 +165,49 @@ impl Paginated for RichAddrsEp {
     }
 }
 
-impl Endpoint for RichAddrsEp {
+impl Endpoint for RichWalletsEp {
     type Value = WalletPage;
 
-    async fn query(&self, client: &KromerClient) -> Result<Self::Value, KromerError> {
-        client
-            .get::<PageRes<Self::Value>>("/api/krist/addresses/rich", Some(self))
-            .await?
-            .extract()
+    async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+        client.get("/api/krist/addresses", Some(self)).await
     }
 }
 
-impl PaginatedEndpoint for RichAddrsEp {
-    async fn query_page(&mut self, client: &KromerClient) -> Result<Self::Value, KromerError> {
-        let res = self.query(client).await?;
-
-        self.offset += res.count;
-
-        Ok(res)
-    }
-}
-
-/// An endpoint for fetching recent [`Transactions`](crate::model::krist::Transaction) of a given [`address`](WalletAddr)
+/// An endpoint for listing the most recent transactions at a given [`Address`]
 ///
-/// See: <https://krist.dev/docs/pi-AddressGroup-GetAddressTransactions>
+/// See: <https://krist.dev/docs/#api-AddressGroup-GetAddressTransactions>
 #[derive(Debug, Serialize, Clone, Copy)]
-#[serde(rename_all = "camelCase")]
-pub struct RecentAddrTransactionsEp {
-    #[serde()]
-    addr: WalletAddr,
+pub struct RecentWalletTransactionsEp {
+    #[serde(skip)]
+    addr: Address,
+    #[serde(rename = "excludeMined")]
     query_mined: bool,
-    limit: usize,
     offset: usize,
+    limit: usize,
 }
-impl RecentAddrTransactionsEp {
-    /// Creates a new [`RecentAddrTransactionsEp`]
+
+impl RecentWalletTransactionsEp {
+    /// Creates a new [`RecentWalletTransactionsEp`]
     #[must_use]
-    pub const fn new(addr: WalletAddr) -> Self {
+    pub const fn new(addr: Address) -> Self {
         Self {
             addr,
             query_mined: false,
-            limit: 50,
             offset: 0,
+            limit: 50,
         }
     }
 
-    /// Sets the `excludeMined` parameter on the query. This determines if the returned values will
-    /// exclude transactions of the [`Mined`] type. Defaults to false if unset.
-    ///
-    /// [`Mined`]: crate::model::krist::TransactionType.Mined
+    /// Sets the `excludeMined` query parameter which controls whether
+    /// mined transactions are included in the response. Defaults to false
     #[must_use]
-    pub const fn exclude_mined(mut self, v: bool) -> Self {
-        self.query_mined = v;
+    pub const fn exclude_mined(mut self, b: bool) -> Self {
+        self.query_mined = b;
         self
     }
 }
 
-impl Paginated for RecentAddrTransactionsEp {
+impl Paginated for RecentWalletTransactionsEp {
     fn limit(mut self, v: usize) -> Self {
         self.limit = v.clamp(1, 1000);
         self
@@ -220,21 +219,21 @@ impl Paginated for RecentAddrTransactionsEp {
     }
 }
 
-impl Endpoint for RecentAddrTransactionsEp {
+impl Endpoint for RecentWalletTransactionsEp {
     type Value = TransactionPage;
 
-    async fn query(&self, client: &KromerClient) -> Result<Self::Value, KromerError> {
+    async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
         let url = format!("/api/krist/addresses/{}/transactions", self.addr);
 
-        client
-            .get::<PageRes<Self::Value>>(&url, Some(self))
-            .await?
-            .extract()
+        client.get(&url, Some(self)).await
     }
 }
 
-impl PaginatedEndpoint for RecentAddrTransactionsEp {
-    async fn query_page(&mut self, client: &KromerClient) -> Result<Self::Value, KromerError> {
+impl PaginatedEndpoint for RecentWalletTransactionsEp {
+    async fn query_page(
+        &mut self,
+        client: &crate::KromerClient,
+    ) -> Result<Self::Value, crate::Error> {
         let res = self.query(client).await?;
 
         self.offset += res.count;
@@ -243,22 +242,22 @@ impl PaginatedEndpoint for RecentAddrTransactionsEp {
     }
 }
 
-/// An endpioint for fetching all the [`Names`](crate::model::krist::Name) owned by a specific [`address`](WalletAddr)
+/// An endpioint for fetching all the [`Names`](crate::model::krist::Name) owned by a specific [`Address`].
 ///
-/// See: <https://krist.dev/docs/pi-AddressGroup-GetAddressNames>
+/// See: <https://krist.dev/docs/#api-AddressGroup-GetAddressNames>
 #[derive(Debug, Serialize, Clone, Copy)]
 #[serde(rename_all = "camelCase")]
-pub struct ListAddrNamesEp {
+pub struct ListWalletNamesEp {
     #[serde(skip)]
-    addr: WalletAddr,
+    addr: Address,
     limit: usize,
     offset: usize,
 }
 
-impl ListAddrNamesEp {
-    /// Creates a new [`ListAddrNamesEp`]
+impl ListWalletNamesEp {
+    /// Creates a new [`ListWalletNamesEp`]
     #[must_use]
-    pub const fn new(addr: WalletAddr) -> Self {
+    pub const fn new(addr: Address) -> Self {
         Self {
             addr,
             limit: 50,
@@ -267,7 +266,7 @@ impl ListAddrNamesEp {
     }
 }
 
-impl Paginated for ListAddrNamesEp {
+impl Paginated for ListWalletNamesEp {
     fn limit(mut self, v: usize) -> Self {
         self.limit = v.clamp(1, 1000);
         self
@@ -279,15 +278,25 @@ impl Paginated for ListAddrNamesEp {
     }
 }
 
-impl Endpoint for ListAddrNamesEp {
+impl Endpoint for ListWalletNamesEp {
     type Value = NamePage;
 
-    async fn query(&self, client: &KromerClient) -> Result<Self::Value, KromerError> {
+    async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
         let url = format!("/api/krist/addresses/{}/names", self.addr);
 
-        client
-            .get::<PageRes<Self::Value>>(&url, Some(self))
-            .await?
-            .extract()
+        client.get(&url, Some(self)).await
+    }
+}
+
+impl PaginatedEndpoint for ListWalletNamesEp {
+    async fn query_page(
+        &mut self,
+        client: &crate::KromerClient,
+    ) -> Result<Self::Value, crate::Error> {
+        let res = self.query(client).await?;
+
+        self.offset += res.count;
+
+        Ok(res)
     }
 }
