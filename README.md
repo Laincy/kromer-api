@@ -32,13 +32,13 @@ Or visit the Krist API documentatiot <https://krist.dev/docs/>
     - [x] [Register a name](https://krist.dev/docs/#api-NameGroup-RegisterName)
     - [x] [Transfer a name](https://krist.dev/docs/#api-NameGroup-TransferName)
     - [x] [Update a name](https://krist.dev/docs/#api-NameGroup-UpdateNamePOST)
-  - [ ] Transaction Endpoints
-    - [ ] [List all transactions](https://krist.dev/docs/#api-TransactionGroup-GetTransactions)
-    - [ ] [List latest transactions](https://krist.dev/docs/#api-TransactionGroup-GetLatestTransactions)
-    - [ ] [Get a transaction](https://krist.dev/docs/#api-TransactionGroup-GetTransaction)
-    - [ ] [Make a transaction](https://krist.dev/docs/#api-TransactionGroup-MakeTransaction)
-  - [ ] The lookup API will be implemented under a feature flag once Kromer2 has made signifigant progress in their own implementation of the API
-  - [ ] The websocket API will be implemented under a feature flag once the Krist API is feature complete
+  - [x] Transaction Endpoints
+    - [x] [List all transactions](https://krist.dev/docs/#api-TransactionGroup-GetTransactions)
+    - [x] [List latest transactions](https://krist.dev/docs/#api-TransactionGroup-GetLatestTransactions)
+    - [x] [Get a transaction](https://krist.dev/docs/#api-TransactionGroup-GetTransaction)
+    - [x] [Make a transaction](https://krist.dev/docs/#api-TransactionGroup-MakeTransaction)
+  - The lookup API will be implemented under a feature flag once Kromer2 has made signifigant progress in their own implementation of the API
+  - The websocket API will be implemented under a feature flag once the Krist API is feature complete
 - [ ] Kromer2 API
   - [ ] Wallet
     - [ ] Get by UUID

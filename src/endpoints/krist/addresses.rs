@@ -3,7 +3,7 @@ use crate::{
     model::krist::{Address, NamePage, TransactionPage, Wallet, WalletPage},
 };
 use serde::{Deserialize, Serialize};
-use tracing::{Level, span};
+use tracing::trace_span;
 
 /// An endpoint for fetching a [`Wallet`] using an [`Address`]
 ///
@@ -55,7 +55,7 @@ impl Endpoint for GetWalletEp {
     /// This field will only be [`Some`] in the event that the `fetchNames`
     /// parameter was set to true. Otherwise it can be safely ignored.
     async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
-        let span = span!(Level::TRACE, "get_walet", address = %self.addr);
+        let span = trace_span!("get_walet", address = %self.addr);
         let _guard = span.enter();
 
         let url = format!("/api/krist/addresses/{}", self.addr);
@@ -111,12 +111,7 @@ impl Endpoint for ListWalletsEp {
     type Value = WalletPage;
 
     async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
-        let span = span!(
-            Level::TRACE,
-            "list_wallets",
-            limit = self.limit,
-            offset = self.offset
-        );
+        let span = trace_span!("list_wallets", limit = self.limit, offset = self.offset);
         let _guard = span.enter();
         client.get("/api/krist/addresses", Some(self)).await
     }
@@ -180,8 +175,7 @@ impl Endpoint for RichWalletsEp {
     type Value = WalletPage;
 
     async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
-        let span = span!(
-            Level::TRACE,
+        let span = trace_span!(
             "list_rich_wallets",
             limit = self.limit,
             offset = self.offset
@@ -242,8 +236,7 @@ impl Endpoint for RecentWalletTransactionsEp {
     type Value = TransactionPage;
 
     async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
-        let span = span!(
-            Level::TRACE,
+        let span = trace_span!(
             "recent_wallet_transactions",
             addr = %self.addr,
             limit = self.limit,
@@ -309,8 +302,7 @@ impl Endpoint for ListWalletNamesEp {
     type Value = NamePage;
 
     async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
-        let span = span!(
-            Level::TRACE,
+        let span = trace_span!(
             "list_wallet_names",
             addr = %self.addr,
             limit = self.limit,
