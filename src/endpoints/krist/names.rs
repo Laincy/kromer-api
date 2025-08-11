@@ -5,6 +5,7 @@ use crate::{
 
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+use tracing::{Level, span};
 
 /// An endpoint for getting information about a specific [`Name`]
 ///
@@ -33,6 +34,9 @@ impl Endpoint for GetNameEp {
     type Value = NameInfo;
 
     async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+        let span = span!(Level::TRACE, "GetName", name = %self.name);
+        let _guard = span.enter();
+
         let url = format!("/api/krist/names/{}", self.name);
 
         Ok(client.get::<NameRes>(&url, None::<()>).await?.name)
@@ -84,6 +88,14 @@ impl Endpoint for ListNamesEp {
     type Value = NamePage;
 
     async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+        let span = span!(
+            Level::TRACE,
+            "list_names",
+            offset = self.offset,
+            limit = self.limit
+        );
+        let _guard = span.enter();
+
         client.get("/api/krist/names", Some(self)).await
     }
 }
@@ -124,6 +136,9 @@ impl Endpoint for GetNameCostEp {
     type Value = Decimal;
 
     async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+        let span = span!(Level::TRACE, "get_name_cost");
+        let _guard = span.enter();
+
         Ok(client
             .get::<CostRes>("/api/krist/names/cost", None::<()>)
             .await?
@@ -158,8 +173,10 @@ impl Endpoint for CheckNameAvailEp {
     type Value = bool;
 
     async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
-        let url = format!("/api/krist/names/check/{}", self.name);
+        let span = span!(Level::TRACE, "check_name_avail", name = %self.name);
+        let _guard = span.enter();
 
+        let url = format!("/api/krist/names/check/{}", self.name);
         Ok(client.get::<AvailRes>(&url, None::<()>).await?.available)
     }
 }
@@ -192,6 +209,9 @@ impl Endpoint for RegisterNameEp {
 
     /// UNTESTED FUNCTION BECAUSE I'M BROKE AND CAN'T BE BOTHERED TO MAKE A PROPER TEST RIG
     async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+        let span = span!(Level::TRACE, "register_name", name = %self.name);
+        let _guard = span.enter();
+
         let url = format!("/api/krist/names/{}", self.name);
         client.post::<()>(&url, self).await
     }
@@ -227,6 +247,8 @@ impl Endpoint for TransferNameEp {
 
     /// UNTESTED FUNCTION BECAUSE I'M BROKE AND CAN'T BE BOTHERED TO MAKE A PROPER TEST RIG
     async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+        let span = span!(Level::TRACE, "transfer_name", addr = %self.addr, name = %self.name);
+        let _guard = span.enter();
         let url = format!("/api/krist/names/{}/transfer", self.name);
 
         Ok(client.post::<NameRes>(&url, self).await?.name)
@@ -264,6 +286,9 @@ impl Endpoint for UpdateNameEp {
 
     /// UNTESTED FUNCTION BECAUSE I'M BROKE AND CAN'T BE BOTHERED TO MAKE A PROPER TEST RIG
     async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+        let span = span!(Level::TRACE, "update_name", name = %self.name);
+        let _guard = span.enter();
+
         let url = format!("/api/krist/names/{}/update", self.name);
 
         Ok(client.post::<NameRes>(&url, self).await?.name)

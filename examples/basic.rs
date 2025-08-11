@@ -3,16 +3,20 @@ use kromer_api::{
     endpoints::{Endpoint, krist::GetWalletEp},
     model::krist::Address,
 };
+use tracing::Level;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     tracing_subscriber::fmt::init();
 
+    let span = tracing::span!(Level::INFO, "main");
+    let _guard = span.enter();
+
     let client = KromerClient::new("https://kromer.reconnected.cc")?;
+    let addr = Address::try_from("ksg0aierdg")?;
+    let (wallet, _names) = GetWalletEp::new(addr).query(&client).await?;
 
-    let (wallet, _names) = GetWalletEp::new(Address::ServerWelf).query(&client).await?;
-
-    println!("serverwelf balance: {:?}", wallet.balance);
+    println!("{} balance: {:?}", addr, wallet.balance);
 
     Ok(())
 }

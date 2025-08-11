@@ -23,34 +23,31 @@ pub enum Error {
     /// Emmitted when parsing a URL fails
     #[snafu(display(r#"Could not parse input "{url}" into a valid URL"#))]
     InvalidUrl {
-        #[snafu(source)]
         source: url::ParseError,
         url: String,
     },
     /// Emmitted when the underlying [`reqwest`] client can't build a request
     #[snafu(display("Failed to build request to"))]
-    BadRequest {
-        #[snafu(source)]
-        source: reqwest::Error,
-    },
+    BadRequest { source: reqwest::Error },
     /// Emmitted when there is an issue communicating with the server itself
     #[snafu(display("Could not dispatch request"))]
-    RequestFailed {
-        #[snafu(source)]
-        source: reqwest::Error,
-    },
+    RequestFailed { source: reqwest::Error },
     /// Emmitted when there is an issue parsing a JSON body recieved in a response into structured
     /// data
     #[snafu(display("Could not parse JSON body into response"))]
-    MalformedResponse {
-        #[snafu(source)]
-        source: reqwest::Error,
-    },
+    MalformedResponse { source: reqwest::Error },
     /// Returned by the Krist API
     #[snafu(transparent)]
-    KristResponse {
-        #[snafu(source)]
-        source: model::krist::KristError,
+    KristResponse { source: model::krist::KristError },
+    /// Issue when parsing a name
+    #[snafu(transparent)]
+    NameParse {
+        source: model::krist::NameParseError,
+    },
+    /// Issue when parsing a wallet [`Address`](model::krist::Address)
+    #[snafu(transparent)]
+    WalletParse {
+        source: model::krist::WalletParseError,
     },
 }
 

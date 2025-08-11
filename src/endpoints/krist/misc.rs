@@ -4,6 +4,7 @@ use crate::{
 };
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+use tracing::{Level, span};
 
 /// An endpoint for authenticating an [`Address`] using a [`PrivateKey`]
 ///
@@ -35,6 +36,9 @@ impl Endpoint for AuthAddrEp {
     type Value = Option<Address>;
 
     async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+        let span = span!(Level::TRACE, "authorize_addr");
+        let _guard = span.enter();
+
         Ok(client
             .post::<AuthRes>("/api/krist/login", self)
             .await?
@@ -60,6 +64,9 @@ impl Endpoint for GetMotdEp {
     type Value = Motd;
 
     async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+        let span = span!(Level::TRACE, "get_motd",);
+        let _guard = span.enter();
+
         client.get("/api/krist/motd", None::<()>).await
     }
 }
@@ -87,6 +94,9 @@ impl Endpoint for GetMoneySupplyEp {
     type Value = Decimal;
 
     async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+        let span = span!(Level::TRACE, "get_money_supply",);
+        let _guard = span.enter();
+
         let res = client
             .get::<SupplyRes>("/api/krist/supply", None::<()>)
             .await?
