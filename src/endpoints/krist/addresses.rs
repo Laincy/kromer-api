@@ -1,11 +1,11 @@
 use crate::{
     endpoints::{Endpoint, Paginated, PaginatedEndpoint},
-    model::krist::{Address, NamePage, TransactionPage, Wallet, WalletPage},
+    model::krist::{Address, KristWallet, KristWalletPage, NamePage, TransactionPage},
 };
 use serde::{Deserialize, Serialize};
 use tracing::trace_span;
 
-/// An endpoint for fetching a [`Wallet`] using an [`Address`]
+/// An endpoint for fetching a [`KristWallet`] using an [`Address`]
 ///
 /// See: <https://krist.dev/docs/#api-AddressGroup-GetAddress>
 #[derive(Debug, Serialize, Clone, Copy)]
@@ -42,15 +42,15 @@ struct GetWalletRes {
 #[derive(Debug, Deserialize, Serialize)]
 struct GetWalletResInner {
     #[serde(flatten)]
-    wallet: Wallet,
+    wallet: KristWallet,
     names: Option<u32>,
 }
 
 impl Endpoint for GetWalletEp {
-    type Value = (Wallet, Option<u32>);
+    type Value = (KristWallet, Option<u32>);
 
     /// Gets the desired value from the API. Returns a tuple where the
-    /// first value is the [`Wallet`] and the second is the optional
+    /// first value is the [`KristWallet`] and the second is the optional
     /// names field, containing the number of names a wallet owns.
     /// This field will only be [`Some`] in the event that the `fetchNames`
     /// parameter was set to true. Otherwise it can be safely ignored.
@@ -60,13 +60,16 @@ impl Endpoint for GetWalletEp {
 
         let url = format!("/api/krist/addresses/{}", self.addr);
 
-        let res = client.get::<GetWalletRes>(&url, Some(self)).await?.address;
+        let res = client
+            .krist_get::<GetWalletRes>(&url, Some(self))
+            .await?
+            .address;
 
         Ok((res.wallet, res.names))
     }
 }
 
-/// An endpoint for listing [`Wallets`](Wallet) as a [`WalletPage`]
+/// An endpoint for listing [`KristWallets`](KristWallet) as a [`KristWalletPage`]
 ///
 /// See: <https://krist.dev/docs/#api-AddressGroup-GetAddresses>
 #[derive(Debug, Serialize, Clone, Copy)]
@@ -108,12 +111,12 @@ impl Paginated for ListWalletsEp {
 }
 
 impl Endpoint for ListWalletsEp {
-    type Value = WalletPage;
+    type Value = KristWalletPage;
 
     async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
         let span = trace_span!("list_wallets", limit = self.limit, offset = self.offset);
         let _guard = span.enter();
-        client.get("/api/krist/addresses", Some(self)).await
+        client.krist_get("/api/krist/addresses", Some(self)).await
     }
 }
 
@@ -130,7 +133,7 @@ impl PaginatedEndpoint for ListWalletsEp {
     }
 }
 
-/// An endpoint for fetching the richest [`Wallets`](Wallet) as a [`WalletPage`]
+/// An endpoint for fetching the richest [`KristWallets`](KristWallet) as a [`KristWalletPage`]
 ///
 /// See: <https://krist.dev/docs/#api-AddressGroup-GetRichAddresses>
 #[derive(Debug, Serialize, Clone, Copy)]
@@ -172,7 +175,7 @@ impl Paginated for RichWalletsEp {
 }
 
 impl Endpoint for RichWalletsEp {
-    type Value = WalletPage;
+    type Value = KristWalletPage;
 
     async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
         let span = trace_span!(
@@ -182,7 +185,7 @@ impl Endpoint for RichWalletsEp {
         );
         let _guard = span.enter();
 
-        client.get("/api/krist/addresses", Some(self)).await
+        client.krist_get("/api/krist/addresses", Some(self)).await
     }
 }
 
@@ -245,7 +248,7 @@ impl Endpoint for RecentWalletTransactionsEp {
         let _guard = span.enter();
 
         let url = format!("/api/krist/addresses/{}/transactions", self.addr);
-        client.get(&url, Some(self)).await
+        client.krist_get(&url, Some(self)).await
     }
 }
 
@@ -311,7 +314,7 @@ impl Endpoint for ListWalletNamesEp {
         let _guard = span.enter();
 
         let url = format!("/api/krist/addresses/{}/names", self.addr);
-        client.get(&url, Some(self)).await
+        client.krist_get(&url, Some(self)).await
     }
 }
 

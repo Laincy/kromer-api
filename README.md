@@ -40,9 +40,9 @@ Or visit the Krist API documentatiot <https://krist.dev/docs/>
   - The lookup API will be implemented under a feature flag once Kromer2 has made signifigant progress in their own implementation of the API
   - The websocket API will be implemented under a feature flag once the Krist API is feature complete
 - [ ] Kromer2 API
-  - [ ] Wallet
-    - [ ] Get by UUID
-    - [ ] Get by name
+  - [x] Wallet
+    - [x] Get by UUID
+    - [x] Get by name
   - [ ] Internal API (`internal` feature)
     - [ ] Create wallet
     - [ ] Give wallet money

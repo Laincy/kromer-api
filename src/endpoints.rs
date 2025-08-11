@@ -5,7 +5,10 @@ use std::fmt::Debug;
 use crate::{Error, KromerClient};
 use serde::Serialize;
 
+pub use wallet::*;
+
 pub mod krist;
+mod wallet;
 
 /// Methods for endpoints that are paginated
 pub trait Paginated {

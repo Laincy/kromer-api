@@ -7,9 +7,9 @@ use serde::{
 use sha2::{Digest, Sha256, digest::FixedOutput};
 use std::fmt::Display;
 
-/// A wallet fetched from the Kromer2 API
+/// A wallet fetched from Kromer2's Krist compatible API
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
-pub struct Wallet {
+pub struct KristWallet {
     /// The address associated with this wallet
     pub address: Address,
     /// The amount of Kromer in this wallet
@@ -28,14 +28,14 @@ pub struct Wallet {
 
 /// A page of wallets fetched from a paginated API
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct WalletPage {
+pub struct KristWalletPage {
     /// The number of wallets returned in this query
     pub count: usize,
     /// The total number of wallets fetchable from the endpoint this value came from
     pub total: usize,
     /// The wallets fetched from this query
     #[serde(alias = "addresses")]
-    pub wallets: Vec<Wallet>,
+    pub wallets: Vec<KristWallet>,
 }
 
 /// Errors thrown when parsing a value into a [`Address`] or [`PrivateKey`]
@@ -80,7 +80,8 @@ impl Address {
     /// Parses a slice of bytes into `[Address]`
     ///
     /// # Errors
-    /// Errors if the input is not a valid Krist wallet address See [`AddressParseError`] for
+    /// Errors if the input is not a valid Krist wallet address See
+    /// [`WalletParseError`](super::WalletParseError) for
     /// more info
     pub const fn parse(bytes: &[u8]) -> Result<Self, WalletParseError> {
         // Allowing this here because the suggested replacement does not work in const environment

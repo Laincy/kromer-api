@@ -68,7 +68,7 @@ impl Endpoint for ListTransactionsEp {
         );
         let _guard = span.enter();
 
-        client.get("/api/krist/transactions", Some(self)).await
+        client.krist_get("/api/krist/transactions", Some(self)).await
     }
 }
 
@@ -137,7 +137,7 @@ impl Endpoint for LatestTransactionsEp {
         let _guard = span.enter();
 
         client
-            .get("/api/krist/transactions/latest", Some(self))
+            .krist_get("/api/krist/transactions/latest", Some(self))
             .await
     }
 }
@@ -173,7 +173,7 @@ impl Endpoint for GetTransactionEp {
         let url = format!("/api/krist/transactions/{}", self.id);
 
         Ok(client
-            .get::<TransactionRes>(&url, None::<()>)
+            .krist_get::<TransactionRes>(&url, None::<()>)
             .await?
             .transaction)
     }
@@ -256,7 +256,7 @@ impl Endpoint for MakeTransactionEp {
         let _guard = span.enter();
 
         Ok(client
-            .post::<TransactionRes>("/api/krist/transactions", self)
+            .krist_post::<TransactionRes>("/api/krist/transactions", self)
             .await?
             .transaction)
     }

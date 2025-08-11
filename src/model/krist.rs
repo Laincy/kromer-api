@@ -110,10 +110,9 @@ impl RawKristError {
 
                 KristError::TransactionConflict { param }
             }
-            "internal_server_self.r" => KristError::InternalServerError {
+            _ => KristError::InternalServerError {
                 message: self.message,
             },
-            _ => KristError::UnexpectedResponse,
         })
     }
 }

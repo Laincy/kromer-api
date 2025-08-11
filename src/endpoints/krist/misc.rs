@@ -40,7 +40,7 @@ impl Endpoint for AuthAddrEp {
         let _guard = span.enter();
 
         Ok(client
-            .post::<AuthRes>("/api/krist/login", self)
+            .krist_post::<AuthRes>("/api/krist/login", self)
             .await?
             .address)
     }
@@ -67,7 +67,7 @@ impl Endpoint for GetMotdEp {
         let span = span!(Level::TRACE, "get_motd",);
         let _guard = span.enter();
 
-        client.get("/api/krist/motd", None::<()>).await
+        client.krist_get("/api/krist/motd", None::<()>).await
     }
 }
 
@@ -98,7 +98,7 @@ impl Endpoint for GetMoneySupplyEp {
         let _guard = span.enter();
 
         let res = client
-            .get::<SupplyRes>("/api/krist/supply", None::<()>)
+            .krist_get::<SupplyRes>("/api/krist/supply", None::<()>)
             .await?
             .money_supply;
 

@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use snafu::{ResultExt, Snafu};
 use tracing::{info, warn};
 
+use crate::model::RawKromerError;
 use crate::model::krist::RawKristError;
 
 pub mod endpoints;
@@ -39,6 +40,9 @@ pub enum Error {
     /// Returned by the Krist API
     #[snafu(transparent)]
     KristResponse { source: model::krist::KristError },
+    #[snafu(transparent)]
+    /// Returned by the Kromer API
+    KromerResponse { source: model::KromerError },
     /// Issue when parsing a name
     #[snafu(transparent)]
     NameParse {
@@ -49,6 +53,11 @@ pub enum Error {
     WalletParse {
         source: model::krist::WalletParseError,
     },
+}
+
+#[derive(Debug, Deserialize)]
+struct KromerExtractHelper<T> {
+    pub data: T,
 }
 
 /// A client for querying the `Kromer2` Api
@@ -64,7 +73,7 @@ impl KromerClient {
     /// Errors if the passed in value is not valid.
     /// # Panics
     /// Panics if we cannot construct the client for an unknown reason. Chances are, if this occurs
-    /// this is irrecoverable anyways
+    /// it is irrecoverable and an issue at the crate level
     pub fn new(url: &str) -> Result<Self, Error> {
         let mut headers = header::HeaderMap::new();
         headers.insert(
@@ -89,7 +98,48 @@ impl KromerClient {
     }
 
     #[allow(dead_code)]
-    pub(crate) async fn get<T>(
+    pub(crate) async fn get<T>(&self, endpoint: &str) -> Result<T, Error>
+    where
+        T: for<'de> Deserialize<'de> + Sized,
+    {
+        // Safety:
+        // We can panic here because if this join fails, the crate itself is passing a bad URL in
+        let url = self.url.join(endpoint).expect("Passed a bad URL");
+
+        let req = self
+            .http
+            .get(url.clone())
+            .build()
+            .context(BadRequestSnafu)?;
+
+        info!("Sent a GET request to {}", req.url());
+        let response = self
+            .http
+            .execute(req)
+            .await
+            .context(RequestFailedSnafu {})?;
+
+        if !response.status().is_success() {
+            warn!("Recieved HTTP response {}", response.status());
+
+            let err = response
+                .json::<RawKromerError>()
+                .await
+                .context(MalformedResponseSnafu)?
+                .parse()
+                .expect_err("Cannot return ok");
+
+            return Err(Error::KromerResponse { source: err });
+        }
+
+        Ok(response
+            .json::<KromerExtractHelper<T>>()
+            .await
+            .context(MalformedResponseSnafu)?
+            .data)
+    }
+
+    pub(crate) async fn krist_get<T>(
         &self,
         endpoint: &str,
         query: Option<impl Serialize + Sized>,
@@ -131,7 +181,7 @@ impl KromerClient {
         response.json::<T>().await.context(MalformedResponseSnafu)
     }
 
-    pub(crate) async fn post<T>(
+    pub(crate) async fn krist_post<T>(
         &self,
         endpoint: &str,
         body: &(impl Serialize + Sized + Sync),

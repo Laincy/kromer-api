@@ -39,7 +39,7 @@ impl Endpoint for GetNameEp {
 
         let url = format!("/api/krist/names/{}", self.name);
 
-        Ok(client.get::<NameRes>(&url, None::<()>).await?.name)
+        Ok(client.krist_get::<NameRes>(&url, None::<()>).await?.name)
     }
 }
 
@@ -96,7 +96,7 @@ impl Endpoint for ListNamesEp {
         );
         let _guard = span.enter();
 
-        client.get("/api/krist/names", Some(self)).await
+        client.krist_get("/api/krist/names", Some(self)).await
     }
 }
 
@@ -140,7 +140,7 @@ impl Endpoint for GetNameCostEp {
         let _guard = span.enter();
 
         Ok(client
-            .get::<CostRes>("/api/krist/names/cost", None::<()>)
+            .krist_get::<CostRes>("/api/krist/names/cost", None::<()>)
             .await?
             .name_cost)
     }
@@ -177,7 +177,7 @@ impl Endpoint for CheckNameAvailEp {
         let _guard = span.enter();
 
         let url = format!("/api/krist/names/check/{}", self.name);
-        Ok(client.get::<AvailRes>(&url, None::<()>).await?.available)
+        Ok(client.krist_get::<AvailRes>(&url, None::<()>).await?.available)
     }
 }
 
@@ -213,7 +213,7 @@ impl Endpoint for RegisterNameEp {
         let _guard = span.enter();
 
         let url = format!("/api/krist/names/{}", self.name);
-        client.post::<()>(&url, self).await
+        client.krist_post::<()>(&url, self).await
     }
 }
 
@@ -251,11 +251,13 @@ impl Endpoint for TransferNameEp {
         let _guard = span.enter();
         let url = format!("/api/krist/names/{}/transfer", self.name);
 
-        Ok(client.post::<NameRes>(&url, self).await?.name)
+        Ok(client.krist_post::<NameRes>(&url, self).await?.name)
     }
 }
 
-/// Endpoint for updating the metadata of a [`Name`]. While this endpoint uses the `POST` method,
+/// Endpoint for updating the metadata of a [`Name`].
+///
+/// While this endpoint uses the `POST` method,
 /// it does the exact same thiing that the redundant Krist `PUT` endpoint would as well.
 ///
 /// See: <https://krist.dev/docs/#api-NameGroup-UpdateNamePOST>
@@ -291,6 +293,6 @@ impl Endpoint for UpdateNameEp {
 
         let url = format!("/api/krist/names/{}/update", self.name);
 
-        Ok(client.post::<NameRes>(&url, self).await?.name)
+        Ok(client.krist_post::<NameRes>(&url, self).await?.name)
     }
 }
