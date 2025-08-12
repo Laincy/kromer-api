@@ -4,6 +4,7 @@ use crate::{
 };
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+use std::fmt::Debug;
 use tracing::{Level, span};
 
 /// An endpoint for authenticating an [`Address`] using a [`PrivateKey`]
@@ -32,10 +33,10 @@ struct AuthRes {
     address: Option<Address>,
 }
 
-impl Endpoint for AuthAddrEp {
+impl<M: Debug + Clone + Copy + Send + Sync> Endpoint<M> for AuthAddrEp {
     type Value = Option<Address>;
 
-    async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+    async fn query(&self, client: &crate::KromerClient<M>) -> Result<Self::Value, crate::Error> {
         let span = span!(Level::TRACE, "authorize_addr");
         let _guard = span.enter();
 
@@ -60,10 +61,10 @@ impl GetMotdEp {
     }
 }
 
-impl Endpoint for GetMotdEp {
+impl<M: Debug + Clone + Copy + Send + Sync> Endpoint<M> for GetMotdEp {
     type Value = Motd;
 
-    async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+    async fn query(&self, client: &crate::KromerClient<M>) -> Result<Self::Value, crate::Error> {
         let span = span!(Level::TRACE, "get_motd",);
         let _guard = span.enter();
 
@@ -90,10 +91,10 @@ struct SupplyRes {
     money_supply: Decimal,
 }
 
-impl Endpoint for GetMoneySupplyEp {
+impl<M: Debug + Clone + Copy + Send + Sync> Endpoint<M> for GetMoneySupplyEp {
     type Value = Decimal;
 
-    async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+    async fn query(&self, client: &crate::KromerClient<M>) -> Result<Self::Value, crate::Error> {
         let span = span!(Level::TRACE, "get_money_supply",);
         let _guard = span.enter();
 

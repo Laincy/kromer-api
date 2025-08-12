@@ -7,6 +7,8 @@ use serde::Serialize;
 
 pub use wallet::*;
 
+#[cfg(feature = "internal")]
+pub mod internal;
 pub mod krist;
 mod wallet;
 
@@ -23,17 +25,23 @@ pub trait Paginated {
 
 /// Shared behavior for all endpoints
 #[allow(async_fn_in_trait)]
-pub trait Endpoint: Debug + Clone {
+pub trait Endpoint<M>: Debug + Clone
+where
+    M: Debug + Clone + Copy + Send + Sync,
+{
     /// The value that we are trying to get as an end result from this API
     type Value;
 
     /// Sends the endpoint's request to the API
-    async fn query(&self, client: &KromerClient) -> Result<Self::Value, Error>;
+    async fn query(&self, client: &KromerClient<M>) -> Result<Self::Value, Error>;
 }
 
 /// Shared behavior for Paginated endpoints
 #[allow(async_fn_in_trait)]
-pub trait PaginatedEndpoint: Paginated + Endpoint + Serialize {
+pub trait PaginatedEndpoint<M>: Paginated + Endpoint<M> + Serialize
+where
+    M: Debug + Clone + Copy + Send + Sync,
+{
     /// Queries the endpoint, and adds the recieved count to offset
-    async fn query_page(&mut self, client: &KromerClient) -> Result<Self::Value, Error>;
+    async fn query_page(&mut self, client: &KromerClient<M>) -> Result<Self::Value, Error>;
 }

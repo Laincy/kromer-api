@@ -1,4 +1,5 @@
 use serde::Serialize;
+use std::fmt::Debug;
 use uuid::Uuid;
 
 use crate::{endpoints::Endpoint, model::Wallet};
@@ -17,10 +18,10 @@ impl GetByUuidEp {
     }
 }
 
-impl Endpoint for GetByUuidEp {
+impl<M: Debug + Clone + Copy + Send + Sync> Endpoint<M> for GetByUuidEp {
     type Value = Vec<Wallet>;
 
-    async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+    async fn query(&self, client: &crate::KromerClient<M>) -> Result<Self::Value, crate::Error> {
         let url = format!("/api/v1/wallet/by-player/{}", self.id);
         client.get::<Vec<Wallet>>(&url).await
     }
@@ -40,10 +41,10 @@ impl GetByUserEp {
     }
 }
 
-impl Endpoint for GetByUserEp {
+impl<M: Debug + Clone + Copy + Send + Sync> Endpoint<M> for GetByUserEp {
     type Value = Vec<Wallet>;
 
-    async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+    async fn query(&self, client: &crate::KromerClient<M>) -> Result<Self::Value, crate::Error> {
         let url = format!("/api/v1/wallet/by-name/{}", self.name);
         client.get::<Vec<Wallet>>(&url).await
     }

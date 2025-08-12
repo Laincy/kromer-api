@@ -2,6 +2,7 @@ use crate::endpoints::{Endpoint, Paginated};
 use crate::model::krist::{Address, PrivateKey, Transaction, TransactionPage};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+use std::fmt::Debug;
 use tracing::trace_span;
 
 /// An endpoint for listing all transactions as a [`TransactionPage`]
@@ -57,10 +58,10 @@ impl Paginated for ListTransactionsEp {
     }
 }
 
-impl Endpoint for ListTransactionsEp {
+impl<M: Debug + Clone + Copy + Send + Sync> Endpoint<M> for ListTransactionsEp {
     type Value = TransactionPage;
 
-    async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+    async fn query(&self, client: &crate::KromerClient<M>) -> Result<Self::Value, crate::Error> {
         let span = trace_span!(
             "list_transactions",
             offset = self.offset,
@@ -68,7 +69,9 @@ impl Endpoint for ListTransactionsEp {
         );
         let _guard = span.enter();
 
-        client.krist_get("/api/krist/transactions", Some(self)).await
+        client
+            .krist_get("/api/krist/transactions", Some(self))
+            .await
     }
 }
 
@@ -125,10 +128,10 @@ impl Paginated for LatestTransactionsEp {
     }
 }
 
-impl Endpoint for LatestTransactionsEp {
+impl<M: Debug + Clone + Copy + Send + Sync> Endpoint<M> for LatestTransactionsEp {
     type Value = TransactionPage;
 
-    async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+    async fn query(&self, client: &crate::KromerClient<M>) -> Result<Self::Value, crate::Error> {
         let span = trace_span!(
             "recent_transactions",
             offset = self.offset,
@@ -163,10 +166,10 @@ struct TransactionRes {
     transaction: Transaction,
 }
 
-impl Endpoint for GetTransactionEp {
+impl<M: Debug + Clone + Copy + Send + Sync> Endpoint<M> for GetTransactionEp {
     type Value = Transaction;
 
-    async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+    async fn query(&self, client: &crate::KromerClient<M>) -> Result<Self::Value, crate::Error> {
         let span = trace_span!("get_transaction", id = self.id);
         let _guard = span.enter();
 
@@ -243,10 +246,10 @@ impl MakeTransactionEp {
     }
 }
 
-impl Endpoint for MakeTransactionEp {
+impl<M: Debug + Clone + Copy + Send + Sync> Endpoint<M> for MakeTransactionEp {
     type Value = Transaction;
 
-    async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+    async fn query(&self, client: &crate::KromerClient<M>) -> Result<Self::Value, crate::Error> {
         let span = trace_span!(
             "make_transaction",
             to = %self.to,

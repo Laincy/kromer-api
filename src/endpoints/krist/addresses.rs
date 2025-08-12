@@ -3,6 +3,7 @@ use crate::{
     model::krist::{Address, KristWallet, KristWalletPage, NamePage, TransactionPage},
 };
 use serde::{Deserialize, Serialize};
+use std::fmt::Debug;
 use tracing::trace_span;
 
 /// An endpoint for fetching a [`KristWallet`] using an [`Address`]
@@ -46,7 +47,7 @@ struct GetWalletResInner {
     names: Option<u32>,
 }
 
-impl Endpoint for GetWalletEp {
+impl<M: Debug + Clone + Copy + Send + Sync> Endpoint<M> for GetWalletEp {
     type Value = (KristWallet, Option<u32>);
 
     /// Gets the desired value from the API. Returns a tuple where the
@@ -54,7 +55,7 @@ impl Endpoint for GetWalletEp {
     /// names field, containing the number of names a wallet owns.
     /// This field will only be [`Some`] in the event that the `fetchNames`
     /// parameter was set to true. Otherwise it can be safely ignored.
-    async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+    async fn query(&self, client: &crate::KromerClient<M>) -> Result<Self::Value, crate::Error> {
         let span = trace_span!("get_walet", address = %self.addr);
         let _guard = span.enter();
 
@@ -110,20 +111,20 @@ impl Paginated for ListWalletsEp {
     }
 }
 
-impl Endpoint for ListWalletsEp {
+impl<M: Debug + Clone + Copy + Send + Sync> Endpoint<M> for ListWalletsEp {
     type Value = KristWalletPage;
 
-    async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+    async fn query(&self, client: &crate::KromerClient<M>) -> Result<Self::Value, crate::Error> {
         let span = trace_span!("list_wallets", limit = self.limit, offset = self.offset);
         let _guard = span.enter();
         client.krist_get("/api/krist/addresses", Some(self)).await
     }
 }
 
-impl PaginatedEndpoint for ListWalletsEp {
+impl<M: Debug + Clone + Copy + Send + Sync> PaginatedEndpoint<M> for ListWalletsEp {
     async fn query_page(
         &mut self,
-        client: &crate::KromerClient,
+        client: &crate::KromerClient<M>,
     ) -> Result<Self::Value, crate::Error> {
         let res = self.query(client).await?;
 
@@ -174,10 +175,10 @@ impl Paginated for RichWalletsEp {
     }
 }
 
-impl Endpoint for RichWalletsEp {
+impl<M: Debug + Clone + Copy + Send + Sync> Endpoint<M> for RichWalletsEp {
     type Value = KristWalletPage;
 
-    async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+    async fn query(&self, client: &crate::KromerClient<M>) -> Result<Self::Value, crate::Error> {
         let span = trace_span!(
             "list_rich_wallets",
             limit = self.limit,
@@ -235,10 +236,10 @@ impl Paginated for RecentWalletTransactionsEp {
     }
 }
 
-impl Endpoint for RecentWalletTransactionsEp {
+impl<M: Debug + Clone + Copy + Send + Sync> Endpoint<M> for RecentWalletTransactionsEp {
     type Value = TransactionPage;
 
-    async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+    async fn query(&self, client: &crate::KromerClient<M>) -> Result<Self::Value, crate::Error> {
         let span = trace_span!(
             "recent_wallet_transactions",
             addr = %self.addr,
@@ -252,10 +253,10 @@ impl Endpoint for RecentWalletTransactionsEp {
     }
 }
 
-impl PaginatedEndpoint for RecentWalletTransactionsEp {
+impl<M: Debug + Clone + Copy + Send + Sync> PaginatedEndpoint<M> for RecentWalletTransactionsEp {
     async fn query_page(
         &mut self,
-        client: &crate::KromerClient,
+        client: &crate::KromerClient<M>,
     ) -> Result<Self::Value, crate::Error> {
         let res = self.query(client).await?;
 
@@ -301,10 +302,10 @@ impl Paginated for ListWalletNamesEp {
     }
 }
 
-impl Endpoint for ListWalletNamesEp {
+impl<M: Debug + Clone + Copy + Send + Sync> Endpoint<M> for ListWalletNamesEp {
     type Value = NamePage;
 
-    async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+    async fn query(&self, client: &crate::KromerClient<M>) -> Result<Self::Value, crate::Error> {
         let span = trace_span!(
             "list_wallet_names",
             addr = %self.addr,
@@ -318,10 +319,10 @@ impl Endpoint for ListWalletNamesEp {
     }
 }
 
-impl PaginatedEndpoint for ListWalletNamesEp {
+impl<M: Debug + Clone + Copy + Send + Sync> PaginatedEndpoint<M> for ListWalletNamesEp {
     async fn query_page(
         &mut self,
-        client: &crate::KromerClient,
+        client: &crate::KromerClient<M>,
     ) -> Result<Self::Value, crate::Error> {
         let res = self.query(client).await?;
 

@@ -2,9 +2,9 @@ use crate::{
     endpoints::{Endpoint, Paginated, PaginatedEndpoint},
     model::krist::{Address, Name, NameInfo, NamePage, PrivateKey},
 };
-
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+use std::fmt::Debug;
 use tracing::{Level, span};
 
 /// An endpoint for getting information about a specific [`Name`]
@@ -30,10 +30,10 @@ struct NameRes {
     name: NameInfo,
 }
 
-impl Endpoint for GetNameEp {
+impl<M: Debug + Clone + Copy + Send + Sync> Endpoint<M> for GetNameEp {
     type Value = NameInfo;
 
-    async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+    async fn query(&self, client: &crate::KromerClient<M>) -> Result<Self::Value, crate::Error> {
         let span = span!(Level::TRACE, "GetName", name = %self.name);
         let _guard = span.enter();
 
@@ -84,10 +84,10 @@ impl Paginated for ListNamesEp {
     }
 }
 
-impl Endpoint for ListNamesEp {
+impl<M: Debug + Clone + Copy + Send + Sync> Endpoint<M> for ListNamesEp {
     type Value = NamePage;
 
-    async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+    async fn query(&self, client: &crate::KromerClient<M>) -> Result<Self::Value, crate::Error> {
         let span = span!(
             Level::TRACE,
             "list_names",
@@ -100,10 +100,10 @@ impl Endpoint for ListNamesEp {
     }
 }
 
-impl PaginatedEndpoint for ListNamesEp {
+impl<M: Debug + Clone + Copy + Send + Sync> PaginatedEndpoint<M> for ListNamesEp {
     async fn query_page(
         &mut self,
-        client: &crate::KromerClient,
+        client: &crate::KromerClient<M>,
     ) -> Result<Self::Value, crate::Error> {
         let res = self.query(client).await?;
 
@@ -132,10 +132,10 @@ struct CostRes {
     name_cost: Decimal,
 }
 
-impl Endpoint for GetNameCostEp {
+impl<M: Debug + Clone + Copy + Send + Sync> Endpoint<M> for GetNameCostEp {
     type Value = Decimal;
 
-    async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+    async fn query(&self, client: &crate::KromerClient<M>) -> Result<Self::Value, crate::Error> {
         let span = span!(Level::TRACE, "get_name_cost");
         let _guard = span.enter();
 
@@ -169,15 +169,18 @@ struct AvailRes {
     available: bool,
 }
 
-impl Endpoint for CheckNameAvailEp {
+impl<M: Debug + Clone + Copy + Send + Sync> Endpoint<M> for CheckNameAvailEp {
     type Value = bool;
 
-    async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+    async fn query(&self, client: &crate::KromerClient<M>) -> Result<Self::Value, crate::Error> {
         let span = span!(Level::TRACE, "check_name_avail", name = %self.name);
         let _guard = span.enter();
 
         let url = format!("/api/krist/names/check/{}", self.name);
-        Ok(client.krist_get::<AvailRes>(&url, None::<()>).await?.available)
+        Ok(client
+            .krist_get::<AvailRes>(&url, None::<()>)
+            .await?
+            .available)
     }
 }
 
@@ -204,11 +207,11 @@ impl RegisterNameEp {
     }
 }
 
-impl Endpoint for RegisterNameEp {
+impl<M: Debug + Clone + Copy + Send + Sync> Endpoint<M> for RegisterNameEp {
     type Value = ();
 
     /// UNTESTED FUNCTION BECAUSE I'M BROKE AND CAN'T BE BOTHERED TO MAKE A PROPER TEST RIG
-    async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+    async fn query(&self, client: &crate::KromerClient<M>) -> Result<Self::Value, crate::Error> {
         let span = span!(Level::TRACE, "register_name", name = %self.name);
         let _guard = span.enter();
 
@@ -242,11 +245,11 @@ impl TransferNameEp {
     }
 }
 
-impl Endpoint for TransferNameEp {
+impl<M: Debug + Clone + Copy + Send + Sync> Endpoint<M> for TransferNameEp {
     type Value = NameInfo;
 
     /// UNTESTED FUNCTION BECAUSE I'M BROKE AND CAN'T BE BOTHERED TO MAKE A PROPER TEST RIG
-    async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+    async fn query(&self, client: &crate::KromerClient<M>) -> Result<Self::Value, crate::Error> {
         let span = span!(Level::TRACE, "transfer_name", addr = %self.addr, name = %self.name);
         let _guard = span.enter();
         let url = format!("/api/krist/names/{}/transfer", self.name);
@@ -283,11 +286,11 @@ impl UpdateNameEp {
     }
 }
 
-impl Endpoint for UpdateNameEp {
+impl<M: Debug + Clone + Copy + Send + Sync> Endpoint<M> for UpdateNameEp {
     type Value = NameInfo;
 
     /// UNTESTED FUNCTION BECAUSE I'M BROKE AND CAN'T BE BOTHERED TO MAKE A PROPER TEST RIG
-    async fn query(&self, client: &crate::KromerClient) -> Result<Self::Value, crate::Error> {
+    async fn query(&self, client: &crate::KromerClient<M>) -> Result<Self::Value, crate::Error> {
         let span = span!(Level::TRACE, "update_name", name = %self.name);
         let _guard = span.enter();
 
