@@ -30,8 +30,8 @@
 
         packages = with pkgs; [
           toolchain.default
-          cargo-audit
           cargo-deny
+          cargo-spellcheck
           openssl
           pkg-config
         ];

@@ -1,4 +1,4 @@
-//! Types for interacting with Kromer2's HTTP api
+//! Types for interacting with Kromer2's HTTP API
 
 use rust_decimal::Decimal;
 pub use util::*;
@@ -36,8 +36,8 @@ use krist::{
 };
 use kromer::KromerResponse;
 
-/// An HTTP client for calling the Kromer2 API. Reuses connections and parses reponses into
-/// idiomatic rust types.
+/// An HTTP client for calling the Kromer2 API. Reuses connections and parses
+/// responses into idiomatic rust types.
 pub struct Client<M: ClientMarker> {
     url: url::Url,
     http: reqwest::Client,
@@ -53,8 +53,8 @@ impl Client<Basic> {
     /// See [`Error`] for more info
     ///
     /// # Panics
-    /// Panics if we cannot construct the client for an unknown reason. Chances are, if this occurs
-    /// it is irrecoverable and an issue at the crate level
+    /// Panics if we cannot construct the client for an unknown reason. Chances
+    /// are, if this occurs it is irrecoverable and an issue at the crate level
     pub fn new(url: &str) -> Result<Self, Error> {
         let mut headers = header::HeaderMap::new();
         headers.insert(
@@ -181,10 +181,10 @@ impl<M: ClientMarker> Client<M> {
         response.json::<T>().await.context(MalformedResponseSnafu)
     }
 
-    /// Fetches all [`Wallets`](Wallet) attatched to a Minecraft UUID
+    /// Fetches all [`Wallets`](Wallet) attached to a `Minecraft` `UUID`
     /// # Errors
-    /// Errors if there is no user with a UUID of `id` found by Kromer2, or there is some other network
-    /// issue.
+    /// Errors if there is no user with a `UUID` of `id` found by Kromer2, or
+    /// there is some other network issue.
     ///
     /// See [`Error`] for more info
     pub async fn get_wallet_uuid(&self, id: &Uuid) -> Result<Vec<Wallet>, Error> {
@@ -192,10 +192,10 @@ impl<M: ClientMarker> Client<M> {
         self.get(&url).await
     }
 
-    /// Fetches all [`Wallets`](Wallet) attatched to a Minecraft username
+    /// Fetches all [`Wallets`](Wallet) attached to a `Minecraft` `username`
     /// # Errors
-    /// Errors if there is no user with `name` found by Kromer2, or there is some other network
-    /// issue.
+    /// Errors if there is no user with `name` found by Kromer2, or there is
+    /// some other network issue.
     ///
     /// See [`Error`] for more info
     pub async fn get_wallet_name(&self, name: &str) -> Result<Vec<Wallet>, Error> {
@@ -226,8 +226,8 @@ impl<M: ClientMarker> Client<M> {
             .wallet)
     }
 
-    /// Fetches a [`Wallet`] from the Krist API as a tuple with the number of names that
-    /// wallet owns
+    /// Fetches a [`Wallet`] from the Krist API as a `tuple` with the number of
+    /// names that wallet owns
     ///
     /// # Errors
     /// Errors if `addr` does not exist or there is a network issue
@@ -303,8 +303,9 @@ impl<M: ClientMarker> Client<M> {
         self.krist_get(&url, page).await
     }
 
-    /// Checks if a [`PrivateKey`] corresponds with an address on the Kromer2 server, if it does it
-    /// returns the address, if not it creates a new address and returns it.
+    /// Checks if a [`PrivateKey`] corresponds with an address on the Kromer2
+    /// server, if it does it returns the address, if not it creates a new
+    /// address and returns it.
     ///
     /// # Errors
     /// Errors if there is a network issue
@@ -385,7 +386,8 @@ impl<M: ClientMarker> Client<M> {
     /// Registers a [`Name`], will error if it fails
     ///
     /// # Errors
-    /// Errors if the name is unavailable or the pk links to a wallet with insufficient funds.
+    /// Errors if the name is unavailable or the pk links to a wallet with
+    /// insufficient funds.
     ///
     /// See [`Error`] for more info
     pub async fn register_name(&self, name: &Name, pk: &PrivateKey) -> Result<(), Error> {
@@ -404,8 +406,8 @@ impl<M: ClientMarker> Client<M> {
     /// * `pk` - The [`PrivateKey`] of the address that currently owns the name
     ///
     /// # Errors
-    /// Will error if `name` does not belong to the address pointed to by `pk`, or if there is a
-    /// network issue.
+    /// Will error if `name` does not belong to the address pointed to by `pk`,
+    /// or if there is a network issue.
     ///
     /// See [`Error`] for more info
     pub async fn transfer_name(
@@ -428,11 +430,12 @@ impl<M: ClientMarker> Client<M> {
     ///
     /// # Arguments
     /// * `name` - The [`Name`] to update
-    /// * `meta` - The text to set the metadata to. If `None` it will delete the metadata
+    /// * `meta` - The text to set the `metadata` to. If `None` it will delete the `metadata`
     /// * `pk` - The [`PrivateKey`] that owns `name`
     ///
     /// # Errors
-    /// Will error does not exist or belong to `pk`, or if there is a network issue.
+    /// Will error does not exist or belong to `pk`, or if there is a network
+    /// issue.
     ///
     /// See [`Error`] for more info
     pub async fn update_name(
@@ -451,7 +454,8 @@ impl<M: ClientMarker> Client<M> {
         self.krist_post::<NameInfo>(&url, body).await
     }
 
-    /// Lists transactions in order from oldest to newerst as a [`TransactionPage`]
+    /// Lists transactions in order from oldest to newest as a
+    /// [`TransactionPage`]
     ///
     /// # Arguments
     /// * `page` -  The [`Paginator`] used in the query
@@ -474,7 +478,8 @@ impl<M: ClientMarker> Client<M> {
         self.krist_get("/api/krist/transactions", query).await
     }
 
-    /// Lists transactions in order from newest to oldest as a [`TransactionPage`]
+    /// Lists transactions in order from newest to oldest as a
+    /// [`TransactionPage`]
     ///
     /// # Arguments
     /// * `page` -  The [`Paginator`] used in the query
@@ -498,7 +503,8 @@ impl<M: ClientMarker> Client<M> {
             .await
     }
 
-    /// Gets a specific [`Transaction`] by `id`. Will return None if the transaction does not exist
+    /// Gets a specific [`Transaction`] by `id`. Will return None if the
+    /// transaction does not exist
     ///
     /// # Errors
     /// Errors if there is a network issue
@@ -518,11 +524,13 @@ impl<M: ClientMarker> Client<M> {
         }
     }
 
-    /// Makes a Kromer [`Transaction`]. Note that this does preform several expensive hashes to
-    /// convert a [`PrivateKey`] into an [`Address`] to ensure they are not the same as `addr`
+    /// Makes a Kromer [`Transaction`]. Note that this does preform several
+    /// expensive hashes to convert a [`PrivateKey`] into an [`Address`] to
+    /// ensure they are not the same as `addr`
     ///
     /// # Errors
-    /// Errors if both addresses are the same, or the wallet `pk` points to has insufficient funds.
+    /// Errors if both addresses are the same, or the wallet `pk` points to has
+    /// insufficient funds.
     ///
     /// See [`Error`] for more info
     pub async fn make_transaction(

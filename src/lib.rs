@@ -9,9 +9,10 @@
 )]
 #![warn(missing_docs)]
 
-//! The `kromer_api` crate provides a strongly typed interface for the [Kromer2] currency
-//! server. It omits some features offered by Kromer2 that are not needed, or have
-//! better ways to go about using. These are listed in the [ommissions](crate#ommissions) section below.
+//! The `kromer_api` crate provides a strongly typed interface for the [Kromer2]
+//! currency server. It omits some features offered by Kromer2 that are not
+//! needed, or have better ways to go about using. These are listed in the
+//! [omissions](crate#ommissions) section below.
 //!
 //! ```rust
 //! # use kromer_api::Error;
@@ -28,21 +29,21 @@
 //! ```
 //!
 //! # Features
-//! At the moment, this crate offers all the HTTP endpoints currently implemented
-//! by Kromer2. Most of them are available out of the box, but those that require Kromer2's
-//! internal key will require you to enable the `internal` feature flag and create a
-//! client using the appropriate function.
+//! At the moment, this crate offers all the HTTP endpoints currently
+//! implemented by Kromer2. Most of them are available out of the box, but those
+//! that require Kromer2's internal key will require you to enable the
+//! `internal` feature flag and create a client using the appropriate function.
 //!
-//! Support for the Kromer2 websocket API is planned and in development.
-//! The lookup API will be implemented once Kromer2 has merged support
-//! for more endpoints.
+//! Support for the Kromer2 websocket API is planned and in development. The
+//! lookup API will be implemented once Kromer2 has merged support for more
+//! endpoints.
 //!
-//! # Ommissions
-//! There are some notable things that I've left out of this crate becuause
-//! they are eitheir not needed for the Kromer2 API, or there are better
-//! ways to do it.
+//! # Omissions
+//! There are some notable things that I've left out of this crate because they
+//! are either not needed for the Kromer2 API, or there are better ways to do
+//! it.
 //!
-//! - [Make V2 Address](https://krist.dev/docs/#api-MiscellaneousGroup-MakeV2Address):
+//! - [Make  Address](https://krist.dev/docs/#api-MiscellaneousGroup-MakeV2Address):
 //!   Use the [`Address::from`] trait implementation instead. This preforms a series
 //!   of expensive hashes, but not as expensive as IO.
 //! - [List new names](https://krist.dev/docs/#api-NameGroup-GetNewNames): There are
@@ -69,13 +70,14 @@ use snafu::Snafu;
 pub enum Error {
     #[snafu(display("couldn't parse provide string into URL"))]
     BadUrl { source: url::ParseError },
-    /// Emmitted when the underlying [`reqwest`] client can't build a request
+    /// Emitted when the underlying [`reqwest`] client can't build a request
     #[snafu(display("Failed to build request to"))]
     BadRequest { source: reqwest::Error },
-    /// Emmitted when there is an issue parsing a JSON body recieved in a response
+    /// Emitted when there is an issue parsing a `JSON` body received in a
+    /// response
     #[snafu(display("Could not parse JSON body into response"))]
     MalformedResponse { source: reqwest::Error },
-    /// Emmitted when there is an issue communicating with the server itself
+    /// Emitted when there is an issue communicating with the server itself
     #[snafu(display("Could not dispatch request"))]
     RequestFailed { source: reqwest::Error },
     /// Issues parsing into models

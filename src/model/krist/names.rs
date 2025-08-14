@@ -8,8 +8,8 @@ use snafu::ensure;
 
 /// A name object fetched from the Kromer2 API.
 ///
-/// Does not include some fields defined in the Krist docs as these are irrelevant
-/// for Kromer
+/// Does not include some fields defined in the Krist docs as these are
+/// irrelevant for Kromer
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NameInfo {
     /// The name, without the `.kro` suffix
@@ -20,8 +20,8 @@ pub struct NameInfo {
     pub original_owner: Option<Address>,
     /// The date and time this name was registered
     pub registered: DateTime<Utc>,
-    /// The date and time this name was last updated - eitheir the data changed, or it was transferred to a
-    /// new owner
+    /// The date and time this name was last updated - either the data changed,
+    /// or it was transferred to a new owner
     pub updated: Option<DateTime<Utc>>,
     /// The date and time this name was last transferred to a new owner.
     pub transferred: Option<DateTime<Utc>>,
@@ -34,12 +34,12 @@ pub struct NameInfo {
 pub struct Name(Box<[u8]>);
 
 impl Name {
-    /// Creates a new name object. Note that this will clone at least part of the slice you pass
-    /// in if it is successful.
+    /// Creates a new name object. Note that this will clone at least part of
+    /// the slice you pass in if it is successful.
     ///
     /// # Errors
-    /// Errors if the input string is not an ascii alphanumeric character, '-', or '_' and has no
-    /// extension besides an optional `.kro`
+    /// Errors if the input string is not an ASCII alphanumeric character, '-',
+    /// or '_' and has no extension besides an optional `.kro`
     pub fn parse(s: &str) -> Result<Self, ParseError> {
         let kro_i = s.find(".kro");
 
@@ -126,7 +126,7 @@ impl TryFrom<&str> for Name {
 /// A paginated list of [`Names`](Name) fetched from the Kromer2 API
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NamePage {
-    /// The number of names recieved in this page
+    /// The number of names received in this page
     pub count: usize,
     /// The total count of names
     pub total: usize,

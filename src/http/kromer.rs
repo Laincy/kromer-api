@@ -1,5 +1,3 @@
-//! Types used in the deserialization of responses from endpoints under `/api/v1`
-
 use serde::Deserialize;
 
 use crate::model::KromerError;

@@ -2,6 +2,7 @@
 name = "kromer-api"
 description = "A wrapper for the Kromer2 HTTP and WebSocket API"
 authors = ["Laincy <laincy@proton.me>"]
+readme = "./README.md"
 repository = "https://github.com/Laincy/kromer-api"
 version = "0.1.0"
 edition = "2024"
@@ -28,3 +29,5 @@ default = ["websocket"]
 internal = []
 websocket = []
 
+[package.metadata.spellcheck]
+config = "spellcheck.toml"

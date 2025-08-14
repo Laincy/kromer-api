@@ -1,4 +1,4 @@
-//! Types modelling the Krist compatible section of the Kromer2 API
+//! Types modeling the Krist compatible section of the Kromer2 API
 
 use super::Wallet;
 use serde::{Deserialize, Serialize};
@@ -11,7 +11,7 @@ pub use transactions::*;
 mod names;
 mod transactions;
 
-/// Errors that can be emmitted by the Krist API
+/// Errors that can be emitted by the Krist API
 #[derive(Debug, Snafu, PartialEq, Eq)]
 #[allow(missing_docs)]
 #[snafu(visibility(pub(crate)))]
@@ -49,16 +49,16 @@ pub enum KristError {
     SameWalletTransfer,
     #[snafu(display(r#"Transaction conflict for parameter "{param}""#))]
     TransactionConflict { param: String },
-    /// Various internal errors are exposed under the same name in the `error` field of the JSON
-    /// response, but have different messages. We just pass the message up
-    /// much we're able to to about it.
+    /// Various internal errors are exposed under the same name in the `error`
+    /// field of the `JSON` response, but have different messages. We just pass
+    /// the message up much we're able to to about it.
     #[snafu(display("Kromer2 server error: {message}"))]
     InternalServerError { message: String },
     #[snafu(display("Recieved an unexpected response"))]
     UnexpectedResponse,
 }
 
-/// Message of the day. `Currency` field is ommitted since this doesn't change
+/// Message of the day. `Currency` field is omitted since this doesn't change
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Motd {
     // pub server_time: DateTime<Utc>,
@@ -79,7 +79,7 @@ pub struct Motd {
     pub notice: String,
 }
 
-/// The package section of the [Motd] struct
+/// The package section of the [`Motd`] `struct`
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Package {
     /// The name of the package
@@ -104,7 +104,7 @@ pub struct WalletPage {
     /// The wallets fetched
     #[serde(rename = "addresses")]
     pub wallets: Vec<Wallet>,
-    /// The number of wallets recieved
+    /// The number of wallets received
     pub count: usize,
     /// The total wallets that can be fetched
     pub total: usize,

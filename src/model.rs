@@ -39,13 +39,15 @@ pub enum ParseError {
     /// Thrown when input exceeds the desired length
     #[snafu(display("exp {exp} bytes, got found {got}"))]
     UnexpectedLength { exp: u8, got: usize },
-    /// Thrown when the input is not the special name `serverwelf` and doesn't start with a 'k
+    /// Thrown when the input is not the special name `serverwelf` and doesn't
+    /// start with a 'k
     #[snafu(display("expected bytes starting with 107 ('k'), found {got}"))]
     InvalidPrefix {
         /// The byte found
         got: u8,
     },
-    /// Thrown when the input contains bytes that are not in the ranges 1-9 or a-z
+    /// Thrown when the input contains bytes that are not in the ranges 1-9 or
+    /// a-z
     #[snafu(display(
         "expected a byte in ranges 46..=57 or 97..=122, found {got} at index {index} "
     ))]

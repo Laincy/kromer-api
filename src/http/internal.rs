@@ -122,7 +122,7 @@ impl Client<Priviliged> {
         Ok(res.into_iter().map(|v| (v.wallet, v.pk)).collect())
     }
 
-    /// Creates a [`Wallet`] linked to `id` and returns an [`Address`] and [`PrivateKey`] tuple
+    /// Creates a [`Wallet`] linked to `id` and returns an [`Address`] and [`PrivateKey`] `tuple`
     ///
     /// # Errors
     /// Can error if there is there is a network issue
@@ -136,7 +136,7 @@ impl Client<Priviliged> {
         Ok((res.address, res.privatekey))
     }
 
-    /// Adds `amount` kromer to the wallet `addr` points to
+    /// Adds `amount` Kromer to the wallet `addr` points to
     ///
     /// # Errors
     /// Errors if the wallet does not exist or there is a network issue

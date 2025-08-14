@@ -22,7 +22,8 @@ impl Address {
     /// Parses a slice of bytes into `[Address]`
     ///
     /// # Errors
-    /// Errors if the input is not a valid Kromer address. See [`ParseError`] for more info
+    /// Errors if the input is not a valid Kromer address. See [`ParseError`]
+    /// for more info
     pub const fn parse(bytes: &[u8]) -> Result<Self, ParseError> {
         // Allowing this here because the suggested replacement does not work in const environment
         #[allow(clippy::single_match_else)]
@@ -195,8 +196,9 @@ impl TryFrom<String> for Address {
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd)]
 pub struct AddressInner([u8; 9]);
 
-/// A wallet fetched from the Kromer2 API. Does not include the ID field as there is little use for
-/// it and ommitting it will allow the same type to be used for both the Kromer and Krist endpoints
+/// A wallet fetched from the Kromer2 API. Does not include the ID field as
+/// there is little use for it and omitting it will allow the same type to be
+/// used for both the Kromer and Krist endpoints
 #[derive(Debug, Deserialize, Serialize, Clone, Copy)]
 pub struct Wallet {
     /// The [`Address`] associated with the wallet
@@ -206,14 +208,14 @@ pub struct Wallet {
     /// When this wallet was created
     #[serde(alias = "firstseen")]
     pub created_at: DateTime<Utc>,
-    /// Whether this wallet is stopped from making transactions. If the API does not include this
-    /// field, will defaut to `false`
+    /// Whether this wallet is stopped from making transactions. If the API does
+    /// not include this field, will default to `false`
     #[serde(default)]
     pub locked: bool,
     /// The total amount of Kromer that has been sent to this wallet
     #[serde(alias = "totalin")]
     pub total_in: Decimal,
-    /// The total amount of Kromet that has been sent from this wallet
+    /// The total amount of Kromer that has been sent from this wallet
     #[serde(alias = "totalout")]
     pub total_out: Decimal,
 }

@@ -13,24 +13,27 @@ pub struct Transaction {
     pub id: u32,
     /// The address sending this transaction.
     pub from: Option<Address>,
-    /// The address receiving this transaction. Will be `"name"` if the transaction was a name
-    /// purchase, or `"a"` if it was a name's data change.
+    /// The address receiving this transaction. Will be `"name"` if the
+    /// transaction was a name purchase, or `"a"` if it was a name's data
+    /// change.
     pub to: Address,
-    /// The amount of Kromer transferred in this transaction. Can be 0, notably if the transaction
-    /// was a name's data change.
+    /// The amount of Kromer transferred in this transaction. Can be 0, notably
+    /// if the transaction was a name's data change.
     pub value: Decimal,
     /// The date and time this transaction was made.
     pub time: DateTime<Utc>,
-    /// The name associated with this transaction if there is one, without the `.kro` suffix.
+    /// The name associated with this transaction if there is one, without the
+    /// `.kro` suffix.
     pub name: Option<String>,
     // TODO: Implement metadata parsing
     /// Transaction metadata
     #[serde(deserialize_with = "empty_string_is_none")]
     pub metadata: Option<String>,
-    /// The metaname (part before the `"@"`) of the recipiuent of the transaction, if it was sent to
-    /// a name.
+    /// The `metaname` (part before the `"@"`) of the recipient of the
+    /// transaction, if it was sent to a name.
     pub sent_metaname: Option<String>,
-    /// The name this transaction was sent to, without the `.kro` suffix, if it was sent to a name.
+    /// The name this transaction was sent to, without the `.kro` suffix, if it
+    /// was sent to a name.
     pub sent_name: Option<Name>,
     #[serde(alias = "type")]
     /// The type of this transaction.
@@ -62,7 +65,8 @@ pub enum TransactionType {
 pub struct TransactionPage {
     /// The number of transactions returned from this query
     pub count: usize,
-    /// The total number of transactions that could ever be fetched from this endpoint
+    /// The total number of transactions that could ever be fetched from this
+    /// endpoint
     pub total: usize,
     /// The transactions fetched
     pub transactions: Vec<Transaction>,

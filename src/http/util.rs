@@ -1,5 +1,3 @@
-//! Marker types for [`Client`](super::Client)
-
 use serde::Serialize;
 
 /// Implemented by valid [`Client`](super::Client) markers.
@@ -10,7 +8,8 @@ impl<T: ClientMarkerSealed> ClientMarker for T {}
 
 pub(super) trait ClientMarkerSealed: Send + Sync {}
 
-/// A marker type denoting a [`Client`](super::Client) that cannot use internal endpoints
+/// A marker type denoting a [`Client`](super::Client) that cannot use internal
+/// endpoints
 pub struct Basic;
 
 impl ClientMarkerSealed for Basic {}
@@ -32,14 +31,14 @@ impl Paginator {
         }
     }
 
-    /// Sets the offset of the paginator
+    /// Sets the offset of the `paginator`
     #[must_use]
     pub const fn offset(mut self, v: usize) -> Self {
         self.offset = v;
         self
     }
 
-    /// Sets the limit of the paginator, clamped between 1 and 1000
+    /// Sets the limit of the `paginator`, clamped between 1 and 1000
     #[must_use]
     pub fn limit(mut self, v: usize) -> Self {
         self.limit = v.clamp(1, 1000);
