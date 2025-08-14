@@ -1,22 +1,25 @@
 use kromer_api::{
-    Error, KromerClient,
-    endpoints::{Endpoint, krist::GetWalletEp},
-    model::krist::Address,
+    Error,
+    http::{Client, Paginator},
 };
-use tracing::Level;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     tracing_subscriber::fmt::init();
 
-    let span = tracing::span!(Level::INFO, "main");
-    let _guard = span.enter();
+    let client = Client::new("https://kromer.reconnected.cc")?;
 
-    let client = KromerClient::new("https://kromer.reconnected.cc")?;
-    let addr = Address::try_from("ksg0aierdg")?;
-    let (wallet, _names) = GetWalletEp::new(addr).query(&client).await?;
+    let res = client.get_wallet_name("laincy").await?;
 
-    println!("{} balance: {:?}", addr, wallet.balance);
+    println!("{res:#?}");
+
+    let pg = Paginator::new(0, 1);
+
+    let wallet = client
+        .recent_wallet_transactions(&res[0].address, false, Some(&pg))
+        .await?;
+
+    println!("{wallet:#?}");
 
     Ok(())
 }

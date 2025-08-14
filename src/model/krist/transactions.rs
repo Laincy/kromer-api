@@ -1,8 +1,9 @@
-use super::Address;
 use super::Name;
+use crate::model::Address;
 use chrono::DateTime;
 use chrono::Utc;
 use rust_decimal::Decimal;
+use serde::Deserializer;
 use serde::{Deserialize, Serialize};
 
 /// A Kromer2 transaction fetched from the API
@@ -24,6 +25,7 @@ pub struct Transaction {
     pub name: Option<String>,
     // TODO: Implement metadata parsing
     /// Transaction metadata
+    #[serde(deserialize_with = "empty_string_is_none")]
     pub metadata: Option<String>,
     /// The metaname (part before the `"@"`) of the recipiuent of the transaction, if it was sent to
     /// a name.
@@ -33,6 +35,14 @@ pub struct Transaction {
     #[serde(alias = "type")]
     /// The type of this transaction.
     pub transaction_type: TransactionType,
+}
+
+fn empty_string_is_none<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    if s.is_empty() { Ok(None) } else { Ok(Some(s)) }
 }
 
 /// The type of a [`Transaction`]

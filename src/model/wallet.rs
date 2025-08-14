@@ -1,3 +1,4 @@
+use super::ParseError;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{
@@ -5,127 +6,96 @@ use serde::{
     de::{Error as DeError, Visitor},
 };
 use sha2::{Digest, Sha256, digest::FixedOutput};
-use std::fmt::Display;
+use std::fmt::Write;
+use std::fmt::{Debug, Display};
 
-/// A wallet fetched from Kromer2's Krist compatible API
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
-pub struct KristWallet {
-    /// The address associated with this wallet
-    pub address: Address,
-    /// The amount of Kromer in this wallet
-    pub balance: Decimal,
-    /// The amount of Kromer that has ever recieved
-    #[serde(alias = "totalin")]
-    pub total_in: Decimal,
-    /// The amount of Kromer that this wallet has ever paid out
-    #[serde(alias = "totalout")]
-    pub total_out: Decimal,
-    /// The date and time of this wallet's first transaction
-    #[serde(alias = "firstseen")]
-    pub first_seen: DateTime<Utc>,
-    // Ignore the names field as we handle this as a tuple later
-}
-
-/// A page of wallets fetched from a paginated API
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct KristWalletPage {
-    /// The number of wallets returned in this query
-    pub count: usize,
-    /// The total number of wallets fetchable from the endpoint this value came from
-    pub total: usize,
-    /// The wallets fetched from this query
-    #[serde(alias = "addresses")]
-    pub wallets: Vec<KristWallet>,
-}
-
-/// Errors thrown when parsing a value into a [`Address`] or [`PrivateKey`]
-#[derive(Debug, snafu::Snafu)]
-pub enum WalletParseError {
-    /// Thrown when input exceeds the desired length
-    #[snafu(display("exp {exp} bytes, got found {got}"))]
-    InvalidLen {
-        /// The length expected
-        exp: u8,
-        /// The length recieved
-        got: usize,
-    },
-    /// Thrown when the input is not the special name `serverwelf` and doesn't start with a 'k
-    #[snafu(display("expected bytes starting with 107 ('k'), found {got}"))]
-    InvalidPrefix {
-        /// The byte found
-        got: u8,
-    },
-    /// Thrown when the input contains bytes that are not in the ranges 1-9 or a-z
-    #[snafu(display(
-        "expected a byte in ranges 46..=57 or 97..=122, found {got} at index {index} "
-    ))]
-    InvalidByte {
-        /// The byte found
-        got: u8,
-        /// The index of the input at which the wrong byte was found
-        index: usize,
-    },
-}
-
-/// An address pointing to a wallet on the Krist API.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// An address for a [`Wallet`] on the Kromer API
+#[derive(Clone, Copy, Eq, PartialEq, PartialOrd)]
 pub enum Address {
     /// A normal user wallet in the format `^k[a-z0-9]{9}`
-    User(AddressInner),
+    Normal(AddressInner),
     /// The special `serverwelf` wallet
-    ServerWelf,
+    Serverwelf,
 }
 
 impl Address {
     /// Parses a slice of bytes into `[Address]`
     ///
     /// # Errors
-    /// Errors if the input is not a valid Krist wallet address See
-    /// [`WalletParseError`](super::WalletParseError) for
-    /// more info
-    pub const fn parse(bytes: &[u8]) -> Result<Self, WalletParseError> {
+    /// Errors if the input is not a valid Kromer address. See [`ParseError`] for more info
+    pub const fn parse(bytes: &[u8]) -> Result<Self, ParseError> {
         // Allowing this here because the suggested replacement does not work in const environment
         #[allow(clippy::single_match_else)]
         match bytes {
-            b"serverwelf" => Ok(Self::ServerWelf),
+            b"serverwelf" => Ok(Self::Serverwelf),
             _ => {
                 if bytes.len() != 10 {
-                    return Err(WalletParseError::InvalidLen {
+                    return Err(ParseError::UnexpectedLength {
                         exp: 10,
                         got: bytes.len(),
                     });
                 } else if bytes[0] != b'k' {
-                    return Err(WalletParseError::InvalidPrefix { got: bytes[0] });
+                    return Err(ParseError::InvalidPrefix { got: bytes[0] });
                 }
 
                 let mut res = [0u8; 9];
 
                 let mut i = 1;
-
                 while i < 10 {
                     let b = bytes[i];
 
                     res[i - 1] = match b {
                         b'0'..=b'9' | b'a'..=b'z' => b,
                         _ => {
-                            return Err(WalletParseError::InvalidByte { got: b, index: i });
+                            return Err(ParseError::InvalidByte { got: b, index: i });
                         }
                     };
 
                     i += 1;
                 }
 
-                Ok(Self::User(AddressInner(res)))
+                Ok(Self::Normal(AddressInner(res)))
             }
         }
     }
+
+    fn parse_pk(pk: &str) -> Self {
+        let mut protein = [0u8; 9];
+        let mut used = [false; 9];
+
+        let mut chain = [0u8; 9];
+
+        let mut hash = double_sha256(pk.as_bytes());
+
+        for amino in &mut protein {
+            *amino = from_radix(&hash[0..=1]);
+            hash = double_sha256(&hash);
+        }
+
+        let mut i = 0;
+
+        while i < 9 {
+            let start = i * 2;
+            let end = start + 2;
+            let index = (from_radix(&hash[start..end]) % 9) as usize;
+
+            if used[index] {
+                hash = sha256(&hash);
+            } else {
+                chain[i] = hex_to_base36(protein[index]);
+                used[index] = true;
+                i += 1;
+            }
+        }
+
+        Self::Normal(AddressInner(chain))
+    }
 }
 
-impl std::fmt::Display for Address {
+impl Debug for Address {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::User(inner) => {
-                use std::fmt::Write;
+            Self::Normal(inner) => {
                 f.write_char('k')?;
 
                 // Safety: We can call unsafe Rust here since the bytes
@@ -134,7 +104,24 @@ impl std::fmt::Display for Address {
 
                 f.write_str(s)
             }
-            Self::ServerWelf => f.write_str("serverwelf"),
+            Self::Serverwelf => write!(f, "serverwelf"),
+        }
+    }
+}
+
+impl Display for Address {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Normal(inner) => {
+                f.write_char('k')?;
+
+                // Safety: We can call unsafe Rust here since the bytes
+                // of inner being valid ASCII is one of our invariants
+                let s = unsafe { std::str::from_utf8_unchecked(&inner.0) };
+
+                f.write_str(s)
+            }
+            Self::Serverwelf => f.write_str("serverwelf"),
         }
     }
 }
@@ -168,8 +155,20 @@ impl<'de> Deserialize<'de> for Address {
     }
 }
 
+impl From<PrivateKey> for Address {
+    fn from(value: PrivateKey) -> Self {
+        Self::parse_pk(&value.0)
+    }
+}
+
+impl From<&PrivateKey> for Address {
+    fn from(value: &PrivateKey) -> Self {
+        Self::parse_pk(&value.0)
+    }
+}
+
 impl TryFrom<&[u8]> for Address {
-    type Error = WalletParseError;
+    type Error = ParseError;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         Self::parse(value)
@@ -177,7 +176,7 @@ impl TryFrom<&[u8]> for Address {
 }
 
 impl TryFrom<&str> for Address {
-    type Error = WalletParseError;
+    type Error = ParseError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         Self::parse(value.as_bytes())
@@ -185,16 +184,39 @@ impl TryFrom<&str> for Address {
 }
 
 impl TryFrom<String> for Address {
-    type Error = WalletParseError;
+    type Error = ParseError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Self::parse(value.as_bytes())
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[doc(hidden)]
+#[derive(Clone, Copy, Eq, PartialEq, PartialOrd)]
 pub struct AddressInner([u8; 9]);
+
+/// A wallet fetched from the Kromer2 API. Does not include the ID field as there is little use for
+/// it and ommitting it will allow the same type to be used for both the Kromer and Krist endpoints
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
+pub struct Wallet {
+    /// The [`Address`] associated with the wallet
+    pub address: Address,
+    /// The amount of Kromer in this wallet
+    pub balance: Decimal,
+    /// When this wallet was created
+    #[serde(alias = "firstseen")]
+    pub created_at: DateTime<Utc>,
+    /// Whether this wallet is stopped from making transactions. If the API does not include this
+    /// field, will defaut to `false`
+    #[serde(default)]
+    pub locked: bool,
+    /// The total amount of Kromer that has been sent to this wallet
+    #[serde(alias = "totalin")]
+    pub total_in: Decimal,
+    /// The total amount of Kromet that has been sent from this wallet
+    #[serde(alias = "totalout")]
+    pub total_out: Decimal,
+}
 
 /// A private key for a specific [`Address`]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -211,6 +233,18 @@ impl PrivateKey {
     #[must_use]
     pub const fn inner(&self) -> &str {
         &self.0
+    }
+}
+
+impl Display for PrivateKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl From<&str> for PrivateKey {
+    fn from(value: &str) -> Self {
+        Self::new(value)
     }
 }
 
@@ -260,55 +294,6 @@ fn hex_to_base36(byte: u8) -> u8 {
         byte @ 10..=35 => byte + b'a' - 10,
         36 => b'e',
         _ => unreachable!(),
-    }
-}
-
-impl From<PrivateKey> for Address {
-    fn from(pk: PrivateKey) -> Self {
-        // Possibly rewrite this later to use closures that write to the same arrays every time?
-        // One for the 32 byte normal hash and one for the 64 byte hex hash
-
-        let mut protein = [0u8; 9];
-        let mut used = [false; 9];
-
-        let mut chain = [0u8; 9];
-
-        let mut hash = double_sha256(pk.0.as_bytes());
-
-        for amino in &mut protein {
-            *amino = from_radix(&hash[0..=1]);
-            hash = double_sha256(&hash);
-        }
-
-        let mut i = 0;
-
-        while i < 9 {
-            let start = i * 2;
-            let end = start + 2;
-            let index = (from_radix(&hash[start..end]) % 9) as usize;
-
-            if used[index] {
-                hash = sha256(&hash);
-            } else {
-                chain[i] = hex_to_base36(protein[index]);
-                used[index] = true;
-                i += 1;
-            }
-        }
-
-        Self::User(AddressInner(chain))
-    }
-}
-
-impl Display for PrivateKey {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.0)
-    }
-}
-
-impl From<&str> for PrivateKey {
-    fn from(value: &str) -> Self {
-        Self::new(value)
     }
 }
 

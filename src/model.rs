@@ -1,77 +1,67 @@
 //! Type models for interacting with the Kromer2 API
 
-use chrono::{DateTime, Utc};
-use rust_decimal::Decimal;
-use serde::{Deserialize, Serialize};
-use snafu::Snafu;
-
-use crate::model::krist::Address;
+pub use wallet::*;
 
 pub mod krist;
 
-/// Errors emmitted by the Kromer specific API. This enum is much less verbose than the
-/// [`KristError`](krist::KristError) error as Kromer errors emit much less information about the
-/// underlying errors.
-#[derive(Debug, Snafu)]
+mod wallet;
+
+use serde::Deserialize;
+use snafu::Snafu;
+
+/// Errors returned by the Kromer2 API itself
+#[derive(Debug, Snafu, Deserialize)]
 #[allow(missing_docs)]
+#[serde(rename_all = "snake_case")]
 pub enum KromerError {
     /// 404 response
     #[snafu(display("Resource not found"))]
-    NotFound,
+    ResourceNotFoundError,
     /// Kromer experienced an issue with wallets
     #[snafu(display("{message}"))]
-    Wallet { message: String },
+    #[serde(rename = "wallet_error")]
+    WalletError { message: String },
     /// Kromer experienced an issue handling the transaction
     #[snafu(display("{message}"))]
-    Transaction { message: String },
+    TransactionError { message: String },
     /// Kromer experienced an issue with the player
     #[snafu(display("{message}"))]
-    Player { message: String },
-    #[snafu(display("Kromer2 server error: {message}"))]
+    PlayerError { message: String },
+    /// For errors within Kromer2 itself that can't be handled by us
+    #[snafu(display("Kromer2 error: {message}"))]
     InternalServerError { message: String },
 }
 
-#[derive(Debug, Deserialize)]
-pub(crate) struct RawKromerError {
-    code: String,
-    message: String,
-}
-
-impl RawKromerError {
-    pub fn parse(self) -> Result<(), KromerError> {
-        Err(match self.code.as_str() {
-            "resource_not_found_error" => KromerError::NotFound,
-            "wallet_error" => KromerError::Wallet {
-                message: self.message,
-            },
-            "transaction_error" => KromerError::Transaction {
-                message: self.message,
-            },
-            "player_error" => KromerError::Player {
-                message: self.message,
-            },
-            _ => KromerError::InternalServerError {
-                message: self.message,
-            },
-        })
-    }
-}
-
-/// A wallet fetched from the Kromer2 API
-#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
-pub struct Wallet {
-    /// The internal ID of the wallet
-    pub id: u32,
-    /// The [`Address`] associated with the wallet
-    pub address: Address,
-    /// The amount of Kromer in this wallet
-    pub balance: Decimal,
-    /// When this wallet was created
-    pub created_at: DateTime<Utc>,
-    /// Whether this wallet can make transactions
-    pub locked: bool,
-    /// The total amount of Kromer that has been sent to this wallet
-    pub total_in: Decimal,
-    /// The total amount of Kromet that has been sent from this wallet
-    pub total_out: Decimal,
+/// Error emitted when parsing objects in `kromer_2`
+#[derive(Debug, Snafu)]
+#[allow(missing_docs)]
+pub enum ParseError {
+    /// Thrown when input exceeds the desired length
+    #[snafu(display("exp {exp} bytes, got found {got}"))]
+    UnexpectedLength { exp: u8, got: usize },
+    /// Thrown when the input is not the special name `serverwelf` and doesn't start with a 'k
+    #[snafu(display("expected bytes starting with 107 ('k'), found {got}"))]
+    InvalidPrefix {
+        /// The byte found
+        got: u8,
+    },
+    /// Thrown when the input contains bytes that are not in the ranges 1-9 or a-z
+    #[snafu(display(
+        "expected a byte in ranges 46..=57 or 97..=122, found {got} at index {index} "
+    ))]
+    InvalidByte {
+        /// The byte found
+        got: u8,
+        /// The index of the input at which the wrong byte was found
+        index: usize,
+    },
+    /// Input string did not fall in the range `1..=64`
+    #[snafu(display("Names must be between 1 and 64 characters long, found {len}"))]
+    LengthBounds { len: usize },
+    /// When the input string ends with an extension that is not `.kro`
+    #[snafu(display(r#"Characters after '.' must be "kro""#))]
+    BadSuffix,
+    /// When the input contains invalid characters
+    #[snafu(display("Names support alphanumeric characters, '-', and '_'. Found '{c}'"))]
+    InvalidChar { c: char },
 }

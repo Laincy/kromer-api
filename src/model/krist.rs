@@ -1,16 +1,15 @@
 //! Types modelling the Krist compatible section of the Kromer2 API
 
+use super::Wallet;
 use serde::{Deserialize, Serialize};
-use snafu::{OptionExt, Snafu, ensure};
+use snafu::Snafu;
 use std::fmt::Debug;
 
 pub use names::*;
 pub use transactions::*;
-pub use wallet::*;
 
 mod names;
 mod transactions;
-mod wallet;
 
 /// Errors that can be emmitted by the Krist API
 #[derive(Debug, Snafu, PartialEq, Eq)]
@@ -59,64 +58,6 @@ pub enum KristError {
     UnexpectedResponse,
 }
 
-#[derive(Debug, Deserialize)]
-pub(crate) struct RawKristError {
-    error: String,
-    message: String,
-}
-
-impl RawKristError {
-    pub fn parse(self) -> Result<(), KristError> {
-        let find_between = |first: &str, last: &str| -> Result<&str, KristError> {
-            let word_start =
-                first.len() + self.message.find(first).context(UnexpectedResponseSnafu)?;
-            let word_end = self.message.find(last).context(UnexpectedResponseSnafu)?;
-
-            Ok(&self.message[word_start..word_end])
-        };
-
-        Err(match self.error.as_str() {
-            "address_not_found" => {
-                let addr = find_between("Address ", " not found")?.to_string();
-
-                KristError::AddrNotFound { addr }
-            }
-            "auth_failed" => KristError::AuthFailed,
-            "name_not_found" => {
-                let name = find_between("Name ", " not found")?.to_string();
-
-                KristError::NameNotFound { name }
-            }
-            "name_taken" => {
-                let name = find_between("Name ", " is already taken")?.to_string();
-
-                KristError::NameTaken { name }
-            }
-            "not_name_owner" => {
-                ensure!(self.message.len() > 30, UnexpectedResponseSnafu);
-
-                let name = self.message[31..].to_string();
-
-                KristError::NotNameOwner { name }
-            }
-            "insufficient_balance" | "insufficient_funds" => KristError::InsufficientBalance,
-            "transaction_not_found" => KristError::TransactionNotFound,
-            "transactions_disabled" => KristError::TransactionsDisabled,
-            "same_wallet_transfer" => KristError::SameWalletTransfer,
-            "transaction_conflict" => {
-                ensure!(self.message.len() > 35, UnexpectedResponseSnafu);
-
-                let param = self.message[36..].to_string();
-
-                KristError::TransactionConflict { param }
-            }
-            _ => KristError::InternalServerError {
-                message: self.message,
-            },
-        })
-    }
-}
-
 /// Message of the day. `Currency` field is ommitted since this doesn't change
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Motd {
@@ -155,4 +96,16 @@ pub struct Package {
     pub repository: String,
     /// The git has of the currently running version of the server software
     pub git_hash: String,
+}
+
+/// A page of wallets fetched from the Krist API
+#[derive(Debug, Deserialize, Clone)]
+pub struct WalletPage {
+    /// The wallets fetched
+    #[serde(rename = "addresses")]
+    pub wallets: Vec<Wallet>,
+    /// The number of wallets recieved
+    pub count: usize,
+    /// The total wallets that can be fetched
+    pub total: usize,
 }

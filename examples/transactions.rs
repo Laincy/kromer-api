@@ -1,28 +1,25 @@
 use kromer_api::{
-    Error, KromerClient,
-    endpoints::{Endpoint, krist::MakeTransactionEp},
-    model::krist::{Address, PrivateKey},
+    Error,
+    http::Client,
+    model::{Address, PrivateKey},
 };
 use rust_decimal::Decimal;
-use tracing::Level;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     tracing_subscriber::fmt::init();
 
-    let span = tracing::span!(Level::INFO, "main");
-    let _guard = span.enter();
+    let client = Client::new("https://kromer.reconnected.cc")?;
 
-    let client = KromerClient::new("https://kromer.reconnected.cc")?;
+    let pk = PrivateKey::from("PRIVATE KEY"); // CHANGEME
 
-    let pk = PrivateKey::new("PRIVATE KEY"); // Change this before running
+    let addr = Address::try_from("ksg0aierdg")?;
 
-    let ep = MakeTransactionEp::new_unchecked(Address::ServerWelf, Decimal::new(1, 2), pk)
-        .set_meta("message=kromer-api example;".to_string());
+    let res = client
+        .make_transaction(&addr, Decimal::new(1, 2), Some("async in traits </3"), &pk)
+        .await?;
 
-    let trans = ep.query(&client).await?;
-
-    println!("{trans:?}");
+    println!("{res:#?}");
 
     Ok(())
 }

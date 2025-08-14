@@ -1,4 +1,4 @@
-use crate::model::krist::Address;
+use crate::model::{Address, BadSuffixSnafu, InvalidCharSnafu, LengthBoundsSnafu, ParseError};
 use chrono::{DateTime, Utc};
 use serde::{
     Deserialize, Deserializer, Serialize,
@@ -6,8 +6,10 @@ use serde::{
 };
 use snafu::ensure;
 
-/// A name object fetched from the Kromer2 API. Does not include some fields defined in the Krist
-/// docs as these are irrelevant for Kromer
+/// A name object fetched from the Kromer2 API.
+///
+/// Does not include some fields defined in the Krist docs as these are irrelevant
+/// for Kromer
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NameInfo {
     /// The name, without the `.kro` suffix
@@ -25,21 +27,6 @@ pub struct NameInfo {
     pub transferred: Option<DateTime<Utc>>,
 }
 
-/// Errors emmitted when parsing Names
-#[derive(Debug, snafu::Snafu)]
-#[allow(missing_docs)]
-pub enum NameParseError {
-    /// Input string did not fall in the range `1..=64`
-    #[snafu(display("Names must be between 1 and 64 characters long, found {len}"))]
-    LengthBounds { len: usize },
-    /// When the input string ends with an extension that is not `.kro`
-    #[snafu(display(r#"Characters after '.' must be "kro""#))]
-    BadSuffix,
-    /// When the input contains invalid characters
-    #[snafu(display("Names support alphanumeric characters, '-', and '_'. Found '{c}'"))]
-    InvalidChar { c: char },
-}
-
 // begrudgingly heap allocate here because it actually makes sense. Though we do store it in a box
 // tto save an extra usize of space
 /// A name, stored without the `.kro` extension
@@ -53,7 +40,7 @@ impl Name {
     /// # Errors
     /// Errors if the input string is not an ascii alphanumeric character, '-', or '_' and has no
     /// extension besides an optional `.kro`
-    pub fn parse(s: &str) -> Result<Self, NameParseError> {
+    pub fn parse(s: &str) -> Result<Self, ParseError> {
         let kro_i = s.find(".kro");
 
         let n_str: &str;
@@ -83,15 +70,19 @@ impl Name {
 
         Ok(Self(inner))
     }
+
+    /// Returns the underlying byte array as a string slice
+    #[must_use]
+    pub fn inner(&self) -> &str {
+        // Safety: We can call unsafe Rust here since the bytes
+        // of our Name being valid ASCII is one of our invariants
+        unsafe { std::str::from_utf8_unchecked(&self.0) }
+    }
 }
 
 impl std::fmt::Display for Name {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // Safety: We can call unsafe Rust here since the bytes
-        // of our Name being valid ASCII is one of our invariants
-        let s = unsafe { std::str::from_utf8_unchecked(&self.0) };
-
-        f.write_str(s)
+        f.write_str(self.inner())
     }
 }
 
@@ -125,7 +116,7 @@ impl<'de> Deserialize<'de> for Name {
 }
 
 impl TryFrom<&str> for Name {
-    type Error = NameParseError;
+    type Error = ParseError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         Self::parse(value)
@@ -137,8 +128,8 @@ impl TryFrom<&str> for Name {
 pub struct NamePage {
     /// The number of names recieved in this page
     pub count: usize,
-    /// The total count of names available
+    /// The total count of names
     pub total: usize,
     /// The page of names
-    pub names: Vec<Name>,
+    pub names: Vec<NameInfo>,
 }
