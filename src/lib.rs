@@ -61,6 +61,8 @@
 
 pub mod http;
 pub mod model;
+#[cfg(feature = "websocket")]
+pub mod ws;
 
 use snafu::Snafu;
 
@@ -94,4 +96,8 @@ pub enum Error {
     BadInternalKey {
         source: reqwest::header::InvalidHeaderValue,
     },
+    /// Errors thrown when working with websockets. See [`ws::WebSocketError`] for more info.
+    #[cfg(feature = "websocket")]
+    #[snafu(transparent)]
+    WebsocketError { source: ws::WebSocketError },
 }

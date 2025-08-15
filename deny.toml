@@ -24,8 +24,14 @@ allow = [
     "Apache-2.0 WITH LLVM-exception",
     "MIT",
     "BSD-3-Clause",
-    "Unicode-3.0"
+    "Unicode-3.0",
+    "ISC",
+    "OpenSSL"
 ]
+
+[[licenses.exceptions]]
+allow = ["CDLA-Permissive-2.0"]
+name = "webpki-roots"
 
 [bans]
 multiple-versions = "warn"

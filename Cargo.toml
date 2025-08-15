@@ -19,15 +19,32 @@ tracing = "0.1.41"
 url = { version = "2.5.4", features = ["serde"] }
 uuid = { version = "1.18.0", features = ["serde", "v4"] }
 
+scc = { version = "2.3.4", optional = true }
+tokio-tungstenite = { version = "0.27.0", optional = true, features = ["rustls", "rustls-tls-webpki-roots", "tokio-rustls"] }
+tokio = { workspace = true, optional = true }
+rustls = {version = "0.23.31", optional = true}
+webpki-roots = { version = "1.0.2", optional = true }
+futures-util = {version = "0.3.31", optional = true }
+serde_json = { workspace = true, optional = true }
+serde_with = { version = "3.14.0", optional = true }
+
 [dev-dependencies]
-serde_json = "1.0.142"
-tokio = { version = "1.47.1", features = ["full"] }
 tracing-subscriber = "0.3.19"
+tokio.workspace = true
+serde_json.workspace = true
 
 [features]
-default = ["websocket"]
+default = []
 internal = []
-websocket = []
+websocket = ["dep:scc", "dep:tokio", "dep:tokio-tungstenite", "dep:rustls", "dep:webpki-roots", "dep:futures-util", "dep:serde_json", "dep:serde_with"]
 
 [package.metadata.spellcheck]
 config = "spellcheck.toml"
+
+[workspace.dependencies]
+tokio = { version = "1.47.1", features = ["full"] }
+serde_json = "1.0.142"
+
+[[example]]
+name = "websocket"
+required-features = ["websocket"]

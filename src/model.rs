@@ -3,6 +3,8 @@
 pub use wallet::*;
 
 pub mod krist;
+#[cfg(feature = "websocket")]
+pub mod ws;
 
 mod wallet;
 

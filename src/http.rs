@@ -3,6 +3,10 @@
 use rust_decimal::Decimal;
 pub use util::*;
 
+const PKG_NAME: &str = env!("CARGO_PKG_NAME");
+const PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
+const PKG_REPO: &str = env!("CARGO_PKG_REPOSITORY");
+
 use crate::{
     BadRequestSnafu, BadUrlSnafu, Error, MalformedResponseSnafu, RequestFailedSnafu,
     model::{
@@ -20,6 +24,9 @@ use std::marker::PhantomData;
 use tracing::{info, warn};
 use url::Url;
 use uuid::Uuid;
+
+#[cfg(feature = "websocket")]
+mod ws;
 
 #[cfg(feature = "internal")]
 pub use internal::*;
@@ -62,13 +69,16 @@ impl Client<Basic> {
             header::HeaderValue::from_static("application/json"),
         );
 
+        let user_agent = format!("{PKG_NAME}/{PKG_VERSION} ({PKG_REPO})");
+
         let client = Self {
             url: Url::parse(url).context(BadUrlSnafu)?,
 
             // Safety:
-            // We can expect here because this should *never* fail uness something is fucked
+            // We can expect here because this should *never* fail unless something is fucked
             #[allow(clippy::expect_used)]
             http: reqwest::ClientBuilder::new()
+                .user_agent(user_agent)
                 .default_headers(headers)
                 .build()
                 .expect("HTTP is fucked, stop trying"),
