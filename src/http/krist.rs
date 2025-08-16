@@ -11,8 +11,8 @@ use snafu::{OptionExt, ensure};
 
 #[derive(Debug, Deserialize)]
 pub struct RawKristError {
-    error: String,
-    message: String,
+    pub error: String,
+    pub message: String,
 }
 
 impl RawKristError {

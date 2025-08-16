@@ -34,6 +34,8 @@
           cargo-spellcheck
           openssl
           pkg-config
+          heaptrack
+          tokio-console
         ];
 
         RUST_BACKTRACE = "full";

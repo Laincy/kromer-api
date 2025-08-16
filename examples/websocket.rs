@@ -1,9 +1,8 @@
-//! A simple example using the crate's websocket capabilities. Creates an HTTP and websocket
-//! connection and subscribes to Transcation events while unsubscribing from other default events.
+//! A simple example using the crate's authorized websocket capabilities. Creates an HTTP and websocket
+//! connection and subscribes to OwnTransactions.
 //!
-//! The handler function waits for a transaction to happen, then takes the receipient of the
-//! transaction and queries their recent transactions using the HTTP api. The "total" field of the
-//! transaction page is then logged as a tracing statement.
+//! The handler function waits for a transaction to happen, then finds the address involved who
+//! wasn't our user. It feeds this address to the client who fetches and logs the wallet.
 //!
 //! This is an example trying to demonstrate how you can compose the websocket event stream with
 //! other components of your app. You could call a discord webhook on each transaction, or execute
@@ -11,63 +10,62 @@
 
 use kromer_api::{
     Error,
-    http::{Client, ClientMarker, Paginator},
-    model::ws::{SubscriptionType, WebSocketEvent},
+    http::Client,
+    model::{
+        Address, PrivateKey, Wallet,
+        ws::{SubscriptionType, WebSocketEvent},
+    },
+    ws::{Auth, WsClient, WsConfig},
 };
 use tokio::sync::mpsc::Receiver;
-use tracing::{debug, info, instrument, warn};
+use tracing::{info, instrument, warn};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     tracing_subscriber::fmt::init();
 
+    let pk = PrivateKey::from("PRIVATE KEY"); // CHANGEME
+    let addr = Address::from(&pk);
+
+    // let http = Client::new("http://localhost:8080")?;
     let http = Client::new("https://kromer.reconnected.cc")?;
 
-    let (client, rx) = http.connect_ws().await?;
+    let cfg = WsConfig::new()
+        .subscribe(SubscriptionType::OwnTransactions)
+        .with_auth(pk);
 
-    // Subscribe to all transaction event
-    for sub in client
-        .subscribe(SubscriptionType::Transactions)
-        .await?
-        .into_iter()
-        .filter(|x| *x != SubscriptionType::Transactions)
-    {
-        let _ = client.unsubscribe(sub).await?;
-    }
+    let (client, event_stream) = http.connnect_ws_config(cfg).await?;
 
-    handle_events(http, rx).await
+    event_loop(addr, client, event_stream).await?;
+
+    Ok(())
 }
 
-/// Waits for the first transaction to come through on the socket, and then finds out how many
-/// total transactions the given user has made
 #[instrument(skip_all)]
-async fn handle_events(
-    http: Client<impl ClientMarker>,
+async fn event_loop(
+    addr: Address,
+    client: WsClient<Auth>,
     mut rx: Receiver<WebSocketEvent>,
 ) -> Result<(), Error> {
-    let page = Paginator::new(0, 1);
-
     info!("waiting for transaction...");
-    while let Some(event) = rx.recv().await {
-        debug!("recieved event: {event:#?}");
 
+    while let Some(event) = rx.recv().await {
         match event {
             WebSocketEvent::Transaction { transaction } => {
-                let addr = transaction.to;
-                let recent = http
-                    .recent_wallet_transactions(&addr, false, Some(&page))
-                    .await?;
-
-                info!(
-                    "wallet {addr} has participated in {} transactions",
-                    recent.total
-                );
-
-                return Ok(());
+                let wallet: Wallet;
+                if transaction.to == addr {
+                    wallet = client.get_wallet(&transaction.to).await?;
+                } else if let Some(from) = transaction.from
+                    && from == addr
+                {
+                    wallet = client.get_wallet(&from).await?;
+                } else {
+                    continue;
+                }
+                info!("Other user's wallet: {wallet:#?}");
             }
-            _ => warn!("Received event we're not subscribed to"),
+            _ => warn!("received wrong event type!"),
         }
     }
-
     Ok(())
 }

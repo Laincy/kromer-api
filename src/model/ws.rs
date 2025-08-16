@@ -13,7 +13,7 @@ pub enum WebSocketEvent {
 }
 
 /// Event types a client can subscribe to
-#[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub enum SubscriptionType {
     /// All transactions on the server

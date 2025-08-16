@@ -21,41 +21,40 @@ pub async fn handle_incoming(
 ) {
     while let Some(res) = rx.next().await {
         // trace!("ws message: {res:?}");
-        let msg = {
-            match res {
-                Ok(Message::Text(b)) => {
-                    // trace!("ws text message: {}", b.as_str());
+        let msg = match res {
+            Ok(Message::Text(b)) => {
+                // trace!("ws text message: {}", b.as_str());
 
-                    let res = serde_json::from_str::<WebSocketMessage>(b.as_str())
-                        .context(MalformedResponseSnafu);
+                let res = serde_json::from_str::<WebSocketMessage>(b.as_str())
+                    .context(MalformedResponseSnafu);
 
-                    if let Ok(m) = res {
-                        m
-                    } else {
-                        #[allow(clippy::unwrap_used)]
-                        let err = res.unwrap_err();
-                        warn!("Couldn't deserialize WS frame: {err:#?}");
+                if let Ok(m) = res {
+                    trace!("received valid message");
+                    m
+                } else {
+                    #[allow(clippy::unwrap_used)]
+                    let err = res.unwrap_err();
+                    warn!("Received malformed frame: {err:#?}");
 
-                        continue;
-                    }
-                }
-                Ok(Message::Ping(_)) => {
-                    trace!("Received ping");
                     continue;
                 }
-                Ok(Message::Close(_)) => {
-                    debug!("closing ws");
-                    break;
-                }
+            }
+            Ok(Message::Ping(_)) => {
+                trace!("Received ping");
+                continue;
+            }
+            Ok(Message::Close(_)) => {
+                debug!("closing ws");
+                break;
+            }
 
-                Ok(_) => {
-                    warn!("Encountered unexpected ws frame");
-                    continue;
-                }
-                Err(e) => {
-                    error!("Encountered ws error: {e}");
-                    break;
-                }
+            Ok(_) => {
+                warn!("Encountered unexpected ws frame");
+                continue;
+            }
+            Err(e) => {
+                error!("Encountered ws error: {e}");
+                break;
             }
         };
 
@@ -70,11 +69,12 @@ pub async fn handle_incoming(
                     warn!("failed to pass message");
                 }
             }
-            // We ignore these two eitheir because they need to be handled, but not beyond
+            // We ignore these two because they need to be handled, but not beyond
             // deserialization. KeepAlive is always bundled with a ping which we handle above.
             // Hello is only received on startup and we don't do anything with it.
             (None, WebSocketMessageInner::Hello | WebSocketMessageInner::KeepAlive) => (),
             (None, inner) => warn!("Received untagged response: {inner:#?}"),
         }
     }
+    debug!("socket closed");
 }

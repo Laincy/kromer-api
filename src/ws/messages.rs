@@ -1,21 +1,22 @@
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use tokio_tungstenite::tungstenite::Message;
 
 use crate::model::{
-    Address, Wallet,
+    Address, PrivateKey, Wallet,
     krist::Transaction,
     ws::{SubscriptionType, WebSocketEvent},
 };
 
 /// A request sent to Kromer2 via websocket
 #[derive(Debug, Serialize, Clone)]
-pub struct WebSocketRequest {
+pub struct WebSocketRequest<'a> {
     pub id: usize,
     #[serde(flatten)]
-    pub inner: WebSocketRequestInner,
+    pub inner: WebSocketRequestInner<'a>,
 }
 
-impl WebSocketRequest {
+impl WebSocketRequest<'_> {
     pub(crate) fn into_message(self) -> Message {
         #[allow(clippy::expect_used)]
         let req = serde_json::to_string(&self).expect("In shambles");
@@ -54,12 +55,12 @@ pub enum WebSocketMessageInner {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(tag = "responding_to", rename_all = "snake_case")]
 pub enum MessageResponseInner {
+    Error {
+        error: String,
+        message: String,
+    },
     Address {
         address: Wallet,
-    },
-    Me {
-        is_guest: bool,
-        address: Option<Wallet>,
     },
     MakeTransaction {
         transaction: Transaction,
@@ -80,16 +81,30 @@ pub enum MessageResponseInner {
     GetSubscriptionLevel {
         subscription_level: Vec<SubscriptionType>,
     },
-    GetValidSubscriptionLevels {
-        valid_subscription_level: Vec<String>,
+    Me {
+        address: Wallet,
     },
 }
 
 #[derive(Debug, Serialize, Clone)]
-#[serde(tag = "type", rename_all = "lowercase")]
-pub enum WebSocketRequestInner {
-    Subscribe { event: SubscriptionType },
-    Unsubscribe { event: SubscriptionType },
-    Address { address: Address },
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum WebSocketRequestInner<'a> {
+    Subscribe {
+        event: SubscriptionType,
+    },
+    Unsubscribe {
+        event: SubscriptionType,
+    },
+    Address {
+        address: Address,
+    },
+    MakeTransaction {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        privatekey: Option<&'a PrivateKey>,
+        to: &'a Address,
+        metadata: Option<&'a str>,
+        amount: Decimal,
+    },
     GetSubscriptionLevel,
+    Me,
 }

@@ -21,7 +21,7 @@ use reqwest::{Request, Response, header};
 use serde::{Deserialize, Serialize};
 use snafu::{ResultExt, ensure};
 use std::marker::PhantomData;
-use tracing::{info, warn};
+use tracing::{trace, warn};
 use url::Url;
 use uuid::Uuid;
 
@@ -37,9 +37,11 @@ mod krist;
 mod kromer;
 mod util;
 
+pub(crate) use krist::RawKristError;
+
 use krist::{
     AuthRequest, AuthRes, AvailRes, CostRes, ListTransactionsQuery, MakeTransactionBody, NameRes,
-    RawKristError, RegisterBody, SupplyRes, TransactionRes, TransferBody, UpdateBody,
+    RegisterBody, SupplyRes, TransactionRes, TransferBody, UpdateBody,
 };
 use kromer::KromerResponse;
 
@@ -86,7 +88,7 @@ impl Client<Basic> {
             _marker: PhantomData,
         };
 
-        info!("Initialized client for {}", client.url);
+        trace!("Initialized client for {}", client.url);
 
         Ok(client)
     }
@@ -95,7 +97,7 @@ impl Client<Basic> {
 impl<M: ClientMarker> Client<M> {
     /// General query behavior
     async fn query(&self, req: Request) -> Result<Response, Error> {
-        info!("sending a {} request to {}", req.method(), req.url());
+        trace!("sending a {} request to {}", req.method(), req.url());
         let response = self.http.execute(req).await.context(RequestFailedSnafu)?;
 
         let status = response.status();
@@ -537,6 +539,12 @@ impl<M: ClientMarker> Client<M> {
     /// Makes a Kromer [`Transaction`]. Note that this does preform several
     /// expensive hashes to convert a [`PrivateKey`] into an [`Address`] to
     /// ensure they are not the same as `addr`
+    ///
+    /// # Arguments
+    /// * `addr` - The [`Address`] the transaction is going to
+    /// * `amount` - The amount of Kromer to send
+    /// * `meta` - The metadata to attach to this transaction
+    /// * `pk` - The [`PrivateKey`] attached to the wallet sending the transaction
     ///
     /// # Errors
     /// Errors if both addresses are the same, or the wallet `pk` points to has
