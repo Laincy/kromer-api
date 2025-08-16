@@ -2,7 +2,7 @@
 
 The `kromer-api` crate provides a strongly typed interface for interacting with the [Kromer2](https://github.com/ReconnectedCC/kromer2) server. It omits backwards compatibility parts of the API, such as those that deal with Krist mining.
 
-This crate isn't on crates.`io` and I don't plan on publishing it, so to begin using it add the following to your `Cargo.toml`:
+This crate isn't on crates.io and I don't plan on publishing it, so to begin using it add the following to your `Cargo.toml`:
 
 ```toml
 [depensdencies]

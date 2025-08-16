@@ -34,7 +34,7 @@ tokio.workspace = true
 serde_json.workspace = true
 
 [features]
-default = ["websocket", "internal"]
+default = []
 internal = []
 websocket = ["dep:scc", "dep:tokio", "dep:tokio-tungstenite", "dep:rustls", "dep:webpki-roots", "dep:futures-util", "dep:serde_json", "dep:serde_with"]
 
@@ -44,7 +44,6 @@ serde_json = "1.0.142"
 
 [package.metadata.spellcheck]
 config = "spellcheck.toml"
-
 
 [[example]]
 name = "websocket"

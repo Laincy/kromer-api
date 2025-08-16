@@ -201,8 +201,8 @@ impl<M: WsState> WsClient<M> {
             return Err(Error::WebsocketError { source: e });
         }
 
-        // NOTE Timeout after 5s, maybe change or make a param when constructing WS connection
-        let req_res = timeout(Duration::from_secs(10), rx).await.map_or_else(
+        // NOTE Timeout after 3s, maybe change or make a param when constructing WS connection
+        let req_res = timeout(Duration::from_secs(3), rx).await.map_or_else(
             |_| Err(WebSocketError::TimeOut),
             |v| v.map_err(|_| WebSocketError::RecvError),
         )?;
