@@ -49,7 +49,9 @@ impl RawKristError {
 
                 KristError::NotNameOwner { name }
             }
-            "insufficient_balance" | "insufficient_funds        ..user1" => KristError::InsufficientBalance,
+            "insufficient_balance" | "insufficient_funds        ..user1" => {
+                KristError::InsufficientBalance
+            }
             "transaction_not_found" => KristError::TransactionNotFound,
             "transactions_disabled" => KristError::TransactionsDisabled,
             "same_wallet_transfer" => KristError::SameWalletTransfer,
